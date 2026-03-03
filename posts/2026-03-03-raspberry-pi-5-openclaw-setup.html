@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raspberry Pi 5 + OpenClaw Setup | Henry Jin</title>
+    <style>
+        :root { --bg: #fafafa; --card-bg: #ffffff; --text: #1a1a1a; --text-light: #666666; --accent: #007aff; --border: #e5e5e5; }
+        [data-theme="dark"] { --bg: #0a0a0a; --card-bg: #1a1a1a; --text: #ffffff; --text-light: #a0a0a0; --border: #333333; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+        .nav { position: fixed; top: 0; left: 0; right: 0; background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 20px; z-index: 1000; display: flex; justify-content: space-between; align-items: center; }
+        .nav-brand { font-size: 18px; font-weight: 600; color: var(--text); text-decoration: none; }
+        .nav-links { display: flex; gap: 20px; }
+        .nav-link { color: var(--text-light); text-decoration: none; font-size: 14px; }
+        .nav-link:hover { color: var(--accent); }
+        .container { max-width: 800px; margin: 0 auto; padding: 80px 20px 40px; }
+        .post { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 40px; }
+        .post-title { font-size: 28px; margin-bottom: 15px; }
+        .post-meta { display: flex; gap: 15px; font-size: 14px; color: var(--text-light); margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+        .post-content h2 { font-size: 22px; margin: 30px 0 15px; color: var(--accent); }
+        .post-content h3 { font-size: 18px; margin: 25px 0 12px; }
+        .post-content p { margin-bottom: 15px; }
+        .post-content ul, .post-content ol { margin: 15px 0 15px 25px; }
+        .post-content li { margin-bottom: 8px; }
+        .post-content pre { background: var(--bg); padding: 15px; border-radius: 8px; overflow-x: auto; margin: 15px 0; font-family: 'SF Mono', Monaco, monospace; font-size: 13px; }
+        .post-content code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', Monaco, monospace; font-size: 13px; }
+        .post-content table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .post-content th, .post-content td { padding: 10px; border: 1px solid var(--border); text-align: left; }
+        .post-content th { background: var(--bg); font-weight: 600; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: var(--accent); text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">Henry Jin</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/posts/" class="nav-link active">Posts</a>
+            <a href="/about.html" class="nav-link">About</a>
+        </div>
+    </nav>
+    <div class="container">
+        <a href="/posts/" class="back-link">← Back to Posts</a>
+        <article class="post">
+            <h1 class="post-title">🖥️ My Self-Hosted Setup: Raspberry Pi 5 + OpenClaw</h1>
+            <div class="post-meta">
+                <time>Published: 2026-03-03</time>
+                <span>Reading time: 15 minutes</span>
+                <span>Tags: #raspberrypi #openclaw #selfhosted #ai</span>
+            </div>
+            <div class="post-content">
+                <h2>📋 Overview</h2>
+                <p>This is my complete guide to setting up OpenClaw AI assistant on Raspberry Pi 5. I'll cover hardware, software, configuration, and all the services I run alongside it.</p>
+
+                <h2>🎯 Hardware Setup</h2>
+                <table>
+                    <tr><th>Component</th><th>Model</th><th>Notes</th></tr>
+                    <tr><td>Main Server</td><td>Raspberry Pi 5 (8GB)</td><td>Runs OpenClaw, nginx, monitoring</td></tr>
+                    <tr><td>Proxy Server</td><td>Phicomm N1</td><td>OpenWrt + OpenClash</td></tr>
+                    <tr><td>Router</td><td>Redmi Router</td><td>Room router (192.168.51.1)</td></tr>
+                    <tr><td>Storage</td><td>SSD via USB 3.0</td><td>Faster than SD card</td></tr>
+                </table>
+
+                <h2>📊 Network Topology</h2>
+                <pre>Internet → ChinaNet (192.168.1.1)
+         ↓
+    Redmi Router (192.168.51.1)
+         ↓
+    ┌────┴────┐
+    ↓         ↓
+Pi5 (51.74)  N1 (51.2)
+- OpenClaw   - Clash Proxy
+- nginx      - OpenWrt
+- Monitoring
+- Pi-hole</pre>
+
+                <h2>🛠️ Software Stack</h2>
+                <h3>Core Services</h3>
+                <table>
+                    <tr><th>Service</th><th>Port</th><th>Purpose</th></tr>
+                    <tr><td>OpenClaw Gateway</td><td>18789</td><td>AI assistant backend</td></tr>
+                    <tr><td>OpenClaw TUI</td><td>-</td><td>Terminal interface</td></tr>
+                    <tr><td>nginx</td><td>8080</td><td>Reverse proxy, web server</td></tr>
+                    <tr><td>PM2</td><td>-</td><td>Process management</td></tr>
+                </table>
+
+                <h3>Supporting Services</h3>
+                <table>
+                    <tr><th>Service</th><th>Port</th><th>Purpose</th></tr>
+                    <tr><td>Pi-hole</td><td>53, 8082</td><td>DNS ad-blocker</td></tr>
+                    <tr><td>Uptime Kuma</td><td>3001</td><td>Service monitoring</td></tr>
+                    <tr><td>Cloudflare Tunnel</td><td>-</td><td>Remote access</td></tr>
+                    <tr><td>Docker</td><td>-</td><td>Container runtime</td></tr>
+                </table>
+
+                <h2>🚀 Installation Steps</h2>
+                <h3>1. Install OpenClaw</h3>
+                <pre>npm install -g openclaw
+openclaw configure</pre>
+
+                <h3>2. Configure AI Model</h3>
+                <p>I use Bailian/Qwen models:</p>
+                <pre># Default model
+bailian/qwen3.5-plus
+
+# For coding tasks
+bailian/qwen3-coder-plus
+
+# For complex analysis
+bailian/qwen3-max-2026-01-23</pre>
+
+                <h3>3. Install Supporting Services</h3>
+                <pre># Docker (for Pi-hole)
+curl -fsSL https://get.docker.com | sh
+
+# PM2 (process management)
+npm install -g pm2
+
+# Uptime Kuma
+git clone https://github.com/louislam/uptime-kuma.git
+cd uptime-kuma
+npm run setup
+pm2 start npm --name uptime-kuma -- start</pre>
+
+                <h2>⚙️ Configuration</h2>
+                <h3>OpenClaw Config</h3>
+                <p>Location: <code>~/.openclaw/openclaw.json</code></p>
+                <pre>{
+  "models": {
+    "providers": {
+      "bailian": {
+        "apiKey": "your-api-key",
+        "models": [
+          {"id": "qwen3.5-plus", "name": "qwen3.5-plus"}
+        ]
+      }
+    }
+  }
+}</pre>
+
+                <h3>Proxy Configuration</h3>
+                <p>For users in China, configure proxy in OpenClaw:</p>
+                <pre># In openclaw.json
+{
+  "proxy": "http://192.168.51.2:7890"
+}</pre>
+
+                <h2>📝 Creating Skills</h2>
+                <p>Skills are instruction files that tell OpenClaw how to handle specific tasks.</p>
+                <h3>Example: Proxy Failover Skill</h3>
+                <pre># Location: skills/proxy-for-blocked-services/SKILL.md
+
+## Description
+Use proxy failover for blocked services
+
+## Use When:
+- Accessing Google services
+- Accessing Telegram API
+- Any GFW-blocked service
+
+## Steps:
+1. Try primary proxy (192.168.51.2:7890)
+2. If fails, try backup (192.168.31.11:7890)
+3. Report status to user</pre>
+
+                <h2>🔧 Automation</h2>
+                <h3>Systemd Timers</h3>
+                <p>I use systemd timers for scheduled tasks:</p>
+                <pre># Proxy failover check (every 2 minutes)
+proxy-failover.timer
+
+# Daily backups (2 AM)
+auto-backup.service
+
+# Weekly summary (Monday 9 AM)
+weekly-summary.service</pre>
+
+                <h3>PM2 Process Management</h3>
+                <pre># Start services
+pm2 start ecosystem.config.js
+
+# Auto-start on boot
+pm2 startup
+pm2 save
+
+# View status
+pm2 status</pre>
+
+                <h2>📊 Monitoring Setup</h2>
+                <h3>Uptime Kuma Monitors</h3>
+                <ul>
+                    <li>Pi Dashboard (HTTP, 60s)</li>
+                    <li>Website (HTTP, 60s)</li>
+                    <li>OpenClaw Gateway (HTTP, 60s)</li>
+                    <li>SSH (TCP, 60s)</li>
+                    <li>Alibaba Cloud API (HTTP, 300s)</li>
+                </ul>
+
+                <h3>Custom Dashboard</h3>
+                <p>I built a custom dashboard showing:</p>
+                <ul>
+                    <li>Real-time system stats</li>
+                    <li>Uptime Kuma monitor status</li>
+                    <li>Proxy status</li>
+                    <li>Service health</li>
+                </ul>
+
+                <h2>🔐 Security Considerations</h2>
+                <h3>Firewall (UFW)</h3>
+                <pre># Allow SSH from local network only
+sudo ufw allow from 192.168.51.0/24 to any port 22
+
+# Allow specific services
+sudo ufw allow 8080/tcp
+sudo ufw allow 3001/tcp</pre>
+
+                <h3>API Keys</h3>
+                <ul>
+                    <li>Store in <code>~/.openclaw/openclaw.json</code></li>
+                    <li>Never commit to git</li>
+                    <li>Use environment variables for sensitive data</li>
+                </ul>
+
+                <h2>💡 Key Learnings</h2>
+                <ol>
+                    <li><strong>SSD over SD card:</strong> Much faster and more reliable</li>
+                    <li><strong>PM2 is essential:</strong> Auto-restart crashed services</li>
+                    <li><strong>Monitor everything:</strong> You can't fix what you don't measure</li>
+                    <li><strong>Document as you go:</strong> You'll forget why you made certain decisions</li>
+                    <li><strong>Start simple:</strong> Add complexity gradually</li>
+                    <li><strong>Backup regularly:</strong> Automated daily backups</li>
+                </ol>
+
+                <h2>🔗 Useful Links</h2>
+                <ul>
+                    <li><a href="https://docs.openclaw.ai" target="_blank">OpenClaw Documentation</a></li>
+                    <li><a href="https://github.com/louislam/uptime-kuma" target="_blank">Uptime Kuma</a></li>
+                    <li><a href="https://pm2.keymetrics.io" target="_blank">PM2 Documentation</a></li>
+                    <li><a href="https://docs.pi-hole.net" target="_blank">Pi-hole Documentation</a></li>
+                </ul>
+            </div>
+        </article>
+    </div>
+    <script>
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        function applyTheme(dark) { document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light'); }
+        applyTheme(prefersDark.matches);
+        prefersDark.addEventListener('change', e => applyTheme(e.matches));
+    </script>
+</body>
+</html>

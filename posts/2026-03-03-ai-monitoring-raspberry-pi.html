@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Monitoring on Raspberry Pi | Henry Jin</title>
+    <style>
+        :root { --bg: #fafafa; --card-bg: #ffffff; --text: #1a1a1a; --text-light: #666666; --accent: #007aff; --border: #e5e5e5; }
+        [data-theme="dark"] { --bg: #0a0a0a; --card-bg: #1a1a1a; --text: #ffffff; --text-light: #a0a0a0; --border: #333333; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+        .nav { position: fixed; top: 0; left: 0; right: 0; background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 20px; z-index: 1000; display: flex; justify-content: space-between; align-items: center; }
+        .nav-brand { font-size: 18px; font-weight: 600; color: var(--text); text-decoration: none; }
+        .nav-links { display: flex; gap: 20px; }
+        .nav-link { color: var(--text-light); text-decoration: none; font-size: 14px; }
+        .nav-link:hover { color: var(--accent); }
+        .container { max-width: 800px; margin: 0 auto; padding: 80px 20px 40px; }
+        .post { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 40px; }
+        .post-title { font-size: 28px; margin-bottom: 15px; }
+        .post-meta { display: flex; gap: 15px; font-size: 14px; color: var(--text-light); margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+        .post-content h2 { font-size: 22px; margin: 30px 0 15px; color: var(--accent); }
+        .post-content h3 { font-size: 18px; margin: 25px 0 12px; }
+        .post-content p { margin-bottom: 15px; }
+        .post-content ul, .post-content ol { margin: 15px 0 15px 25px; }
+        .post-content li { margin-bottom: 8px; }
+        .post-content pre { background: var(--bg); padding: 15px; border-radius: 8px; overflow-x: auto; margin: 15px 0; font-family: 'SF Mono', Monaco, monospace; font-size: 13px; }
+        .post-content code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', Monaco, monospace; font-size: 13px; }
+        .post-content table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .post-content th, .post-content td { padding: 10px; border: 1px solid var(--border); text-align: left; }
+        .post-content th { background: var(--bg); font-weight: 600; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: var(--accent); text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">Henry Jin</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/posts/" class="nav-link active">Posts</a>
+            <a href="/about.html" class="nav-link">About</a>
+        </div>
+    </nav>
+    <div class="container">
+        <a href="/posts/" class="back-link">← Back to Posts</a>
+        <article class="post">
+            <h1 class="post-title">📊 Setting Up AI Monitoring on Raspberry Pi</h1>
+            <div class="post-meta">
+                <time>Published: 2026-03-03</time>
+                <span>Reading time: 12 minutes</span>
+                <span>Tags: #monitoring #raspberrypi #ai #uptimekuma</span>
+            </div>
+            <div class="post-content">
+                <h2>📋 Overview</h2>
+                <p>When you're running a self-hosted AI assistant, monitoring is crucial. In this post, I'll show you how to set up comprehensive monitoring for your AI infrastructure on Raspberry Pi.</p>
+
+                <h2>🎯 What We're Monitoring</h2>
+                <ul>
+                    <li><strong>System Resources:</strong> CPU, Memory, Temperature, Disk</li>
+                    <li><strong>Services:</strong> OpenClaw, nginx, Pi-hole, Cloudflare Tunnel</li>
+                    <li><strong>Network:</strong> Proxy status, Internet connectivity</li>
+                    <li><strong>AI Assistant:</strong> Response times, API availability</li>
+                </ul>
+
+                <h2>🛠️ Tools Used</h2>
+                <table>
+                    <tr><th>Tool</th><th>Purpose</th><th>Port</th></tr>
+                    <tr><td>Uptime Kuma</td><td>Service monitoring & alerts</td><td>3001</td></tr>
+                    <tr><td>Pi Dashboard</td><td>Real-time system stats</td><td>8080</td></tr>
+                    <tr><td>Telegram Bot</td><td>Instant notifications</td><td>-</td></tr>
+                    <tr><td>systemd timers</td><td>Scheduled health checks</td><td>-</td></tr>
+                </table>
+
+                <h2>📊 Uptime Kuma Setup</h2>
+                <h3>Installation</h3>
+                <pre># Already installed via PM2
+pm2 status uptime-kuma</pre>
+
+                <h3>Adding Monitors</h3>
+                <p>Access Uptime Kuma at <code>http://192.168.51.74:3001</code></p>
+                <ol>
+                    <li>Click "Add New Monitor"</li>
+                    <li>Choose monitor type (HTTP, Ping, Port, etc.)</li>
+                    <li>Configure URL/target</li>
+                    <li>Set interval (I use 60 seconds)</li>
+                    <li>Enable notifications</li>
+                </ol>
+
+                <h3>My Monitor Configuration</h3>
+                <table>
+                    <tr><th>Monitor</th><th>Type</th><th>Target</th><th>Interval</th></tr>
+                    <tr><td>Pi Dashboard</td><td>HTTP</td><td>http://192.168.51.74:8080/admin/</td><td>60s</td></tr>
+                    <tr><td>Website</td><td>HTTP</td><td>http://henryjin8s.xyz:8080/</td><td>60s</td></tr>
+                    <tr><td>OpenClaw Gateway</td><td>HTTP</td><td>http://127.0.0.1:18789/</td><td>60s</td></tr>
+                    <tr><td>SSH</td><td>TCP Port</td><td>192.168.51.74:22</td><td>60s</td></tr>
+                    <tr><td>Alibaba Cloud TCP</td><td>HTTP</td><td>https://dashscope.aliyuncs.com</td><td>300s</td></tr>
+                </table>
+
+                <h2>📱 Telegram Notifications</h2>
+                <h3>Setup Steps</h3>
+                <ol>
+                    <li>Create Telegram bot via @BotFather</li>
+                    <li>Get bot token</li>
+                    <li>In Uptime Kuma: Settings → Notifications</li>
+                    <li>Add Telegram notification</li>
+                    <li>Enter bot token and chat ID</li>
+                    <li>Test notification</li>
+                </ol>
+
+                <h3>Notification Script</h3>
+                <p>I created a custom proxy failover monitor that sends Telegram alerts:</p>
+                <pre>#!/bin/bash
+# /home/henry/.openclaw/workspace/telegram-proxy-monitor.sh
+
+TELEGRAM_BOT="YOUR_BOT_TOKEN"
+CHAT_ID="YOUR_CHAT_ID"
+
+send_alert() {
+    curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT}/sendMessage" \
+        -d chat_id="${CHAT_ID}" \
+        -d text="$1" \
+        -d parse_mode="HTML"
+}</pre>
+
+                <h2>🖥️ Pi Dashboard (Custom)</h2>
+                <p>I built a custom dashboard that shows:</p>
+                <ul>
+                    <li>Real-time CPU usage</li>
+                    <li>Memory usage</li>
+                    <li>Temperature</li>
+                    <li>Disk usage</li>
+                    <li>Top 5 processes by memory</li>
+                    <li>Uptime Kuma monitor status</li>
+                </ul>
+                <p><strong>Access:</strong> <code>http://192.168.51.74:8080/admin/</code></p>
+
+                <h2>⚙️ Automated Health Checks</h2>
+                <h3>Proxy Failover Monitor</h3>
+                <p>Runs every 2 minutes via systemd timer:</p>
+                <pre># Check status
+systemctl status proxy-failover.timer
+
+# View logs
+tail -20 /home/henry/.openclaw/workspace/proxy-failover.log</pre>
+
+                <h3>What It Checks</h3>
+                <ol>
+                    <li>Primary proxy (192.168.51.2:7890)</li>
+                    <li>Backup proxy (192.168.31.11:7890)</li>
+                    <li>Automatically switches if primary fails</li>
+                    <li>Sends Telegram alert on failover</li>
+                </ol>
+
+                <h2>📈 Monitoring Best Practices</h2>
+                <h3>1. Set Appropriate Intervals</h3>
+                <ul>
+                    <li>Critical services: 60 seconds</li>
+                    <li>External APIs: 300 seconds</li>
+                    <li>System resources: Real-time dashboard</li>
+                </ul>
+
+                <h3>2. Configure Smart Alerts</h3>
+                <ul>
+                    <li>Don't alert on every blip</li>
+                    <li>Use retry logic (2-3 failures before alert)</li>
+                    <li>Set up escalation (email → Telegram → SMS)</li>
+                </ul>
+
+                <h3>3. Monitor What Matters</h3>
+                <ul>
+                    <li>Service availability (up/down)</li>
+                    <li>Response times (performance)</li>
+                    <li>Resource usage (capacity planning)</li>
+                    <li>Proxy status (for China users)</li>
+                </ul>
+
+                <h2>🎯 Key Learnings</h2>
+                <ol>
+                    <li><strong>Start simple:</strong> Begin with uptime monitoring, add metrics later</li>
+                    <li><strong>Alert fatigue is real:</strong> Only alert on actionable issues</li>
+                    <li><strong>Test your alerts:</strong> Make sure notifications actually arrive</li>
+                    <li><strong>Document everything:</strong> You'll forget why you set certain thresholds</li>
+                    <li><strong>Monitor the monitor:</strong> Make sure Uptime Kuma itself is monitored</li>
+                </ol>
+
+                <h2>🔗 Useful Links</h2>
+                <ul>
+                    <li><a href="https://github.com/louislam/uptime-kuma" target="_blank">Uptime Kuma GitHub</a></li>
+                    <li><a href="https://core.telegram.org/bots/api" target="_blank">Telegram Bot API</a></li>
+                    <li><a href="https://docs.openclaw.ai" target="_blank">OpenClaw Documentation</a></li>
+                </ul>
+            </div>
+        </article>
+    </div>
+    <script>
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        function applyTheme(dark) { document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light'); }
+        applyTheme(prefersDark.matches);
+        prefersDark.addEventListener('change', e => applyTheme(e.matches));
+    </script>
+</body>
+</html>
