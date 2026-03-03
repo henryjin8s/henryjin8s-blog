@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Posts | Henry Jin</title>
+    <style>
+        :root {
+            --bg: #fafafa;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --text-light: #666666;
+            --accent: #007aff;
+            --border: #e5e5e5;
+        }
+        [data-theme="dark"] {
+            --bg: #0a0a0a;
+            --card-bg: #1a1a1a;
+            --text: #ffffff;
+            --text-light: #a0a0a0;
+            --border: #333333;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 20px;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav-brand {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            text-decoration: none;
+        }
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+        .nav-link {
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .nav-link:hover { color: var(--accent); }
+        .nav-link.active { color: var(--accent); font-weight: 500; }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 80px 20px 40px;
+        }
+        .posts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        .post-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .post-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .post-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--accent);
+        }
+        .post-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            color: var(--text-light);
+            margin-bottom: 15px;
+        }
+        .post-excerpt {
+            font-size: 15px;
+            color: var(--text);
+            line-height: 1.7;
+        }
+        .read-more {
+            display: inline-block;
+            margin-top: 15px;
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .read-more:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">Henry Jin</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/posts/" class="nav-link active">Posts</a>
+            <a href="/about.html" class="nav-link">About</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 style="margin-bottom: 30px;">All Posts</h1>
+        
+        <div class="posts-list">
+            <!-- Post 1 -->
+            <a href="/posts/2026-03-03-build-self-hosted-ai-infra.html" class="post-card">
+                <h2 class="post-title">🚀 Building My Self-Hosted AI Assistant Infrastructure</h2>
+                <div class="post-meta">
+                    <time>2026-03-03</time>
+                    <span>#selfhosted #ai #infrastructure #raspberrypi</span>
+                    <span>15 min read</span>
+                </div>
+                <p class="post-excerpt">
+                    Over the past two days, I built a comprehensive self-hosted AI assistant infrastructure on my Raspberry Pi 5. 
+                    This post documents everything we accomplished: N1 Clash proxy, Pi-hole, Dashboard, Uptime Kuma, Cloudflare Tunnel, and more!
+                </p>
+                <span class="read-more">Read more →</span>
+            </a>
+
+            <!-- Post 2 -->
+            <a href="/posts/2026-03-03-pihole-chinese-dns-setup.html" class="post-card">
+                <h2 class="post-title">🛡️ Setting Up Pi-hole with Chinese DNS for Stability</h2>
+                <div class="post-meta">
+                    <time>2026-03-03</time>
+                    <span>#pihole #dns #networking</span>
+                    <span>10 min read</span>
+                </div>
+                <p class="post-excerpt">
+                    Most Pi-hole tutorials recommend Google DNS or Cloudflare. For users in China, this creates a dependency on proxies. 
+                    Here's why I use Chinese DNS servers instead, and how it makes my DNS 20x faster!
+                </p>
+                <span class="read-more">Read more →</span>
+            </a>
+
+            <!-- Post 3 -->
+            <a href="/posts/2026-03-03-cloudflare-tunnel-proxy-fix.html" class="post-card">
+                <h2 class="post-title">🔧 Cloudflare Tunnel: Why It Needs Proxy (And Why It Doesn't)</h2>
+                <div class="post-meta">
+                    <time>2026-03-03</time>
+                    <span>#cloudflare #networking #proxy</span>
+                    <span>8 min read</span>
+                </div>
+                <p class="post-excerpt">
+                    Cloudflare Tunnel needs proxy to CONNECT but NOT for traffic. Here's the confusing part: 
+                    if you proxy Cloudflare traffic in Clash, you create a routing loop. Here's how to fix it!
+                </p>
+                <span class="read-more">Read more →</span>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        function applyTheme(dark) {
+            document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        }
+        applyTheme(prefersDark.matches);
+        prefersDark.addEventListener('change', e => applyTheme(e.matches));
+    </script>
+</body>
+</html>

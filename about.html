@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Henry Jin | 金宏霖</title>
+    <style>
+        :root {
+            --bg: #fafafa;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --text-light: #666666;
+            --accent: #007aff;
+            --border: #e5e5e5;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0a0a0a;
+            --card-bg: #1a1a1a;
+            --text: #ffffff;
+            --text-light: #a0a0a0;
+            --border: #333333;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 40px 0;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header .chinese-name {
+            font-size: 18px;
+            color: var(--text-light);
+            margin-bottom: 15px;
+        }
+
+        .header .tagline {
+            font-size: 15px;
+            color: var(--text-light);
+        }
+
+        .badges {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .badge {
+            background: var(--accent);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Controls */
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover { transform: scale(1.05); }
+        .btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Bio Sections */
+        .bio-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .bio-header {
+            padding: 20px 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s ease;
+        }
+
+        .bio-header:hover { background: rgba(0, 122, 255, 0.05); }
+
+        .bio-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .bio-icon {
+            font-size: 18px;
+            transition: transform 0.3s ease;
+        }
+
+        .bio-section.expanded .bio-icon {
+            transform: rotate(180deg);
+        }
+
+        .bio-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+        }
+
+        .bio-section.expanded .bio-content {
+            max-height: 2000px;
+        }
+
+        .content-inner {
+            padding: 0 24px 24px;
+            color: var(--text-light);
+            font-size: 15px;
+        }
+
+        /* Experience Items */
+        .exp-item {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .exp-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .exp-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .exp-company {
+            font-size: 14px;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .exp-duration {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-bottom: 10px;
+        }
+
+        .exp-desc {
+            font-size: 14px;
+            color: var(--text-light);
+            line-height: 1.7;
+        }
+
+        .exp-desc li {
+            margin-bottom: 6px;
+            margin-left: 18px;
+        }
+
+        /* Skills Grid */
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .skill-item {
+            background: var(--bg);
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 13px;
+        }
+
+        .skill-item strong {
+            color: var(--text);
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+
+        .skill-item span {
+            color: var(--text-light);
+            font-size: 12px;
+        }
+
+        /* Certs */
+        .cert-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .cert {
+            background: var(--accent);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Contact */
+        .contact-info {
+            text-align: center;
+            color: var(--text-light);
+            font-size: 14px;
+            line-height: 2;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+            font-size: 13px;
+            margin-top: 40px;
+        }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            .container { padding: 80px 16px 30px; }
+            .header h1 { font-size: 28px; }
+            .controls { top: 10px; right: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <a href="index.html" class="btn" title="My Blog" style="text-decoration: none; color: inherit;">📝</a>
+        <button class="btn" onclick="toggleAll()" title="Expand/Collapse All">⇄</button>
+        <button class="btn active" onclick="switchLang('en')" id="btn-en">EN</button>
+        <button class="btn" onclick="switchLang('zh')" id="btn-zh">中</button>
+        <button class="btn" onclick="toggleTheme()" id="theme-btn">🌙</button>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Henry Jin</h1>
+            <p class="chinese-name">金宏霖</p>
+            <p class="tagline" data-en="Sales & Operations • Computer Science" data-zh="销售与运营 • 计算机科学">Sales & Operations • Computer Science</p>
+            <div class="badges">
+                <span class="badge">📍 Toronto</span>
+                <span class="badge">🎯 RIBO Level 1</span>
+                <span class="badge">💼 Open to Work</span>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="bio-section expanded" onclick="toggleSection(this)">
+            <div class="bio-header">
+                <span class="bio-title" data-en="About" data-zh="关于我">About</span>
+                <span class="bio-icon">▼</span>
+            </div>
+            <div class="bio-content">
+                <div class="content-inner">
+                    <p data-en="Licensed Ontario Insurance Broker (RIBO Level 1) with a Computer Science degree. Experienced in logistics and sales operations, skilled in Excel-based order management, multi-channel customer communication, and combining technical tools with customer service." data-zh="持有安大略省保险经纪人执照 (RIBO Level 1)，计算机科学学士。擅长物流与销售运营、Excel 订单管理、多渠道客户沟通，能将技术工具与客户服务结合。">Licensed Ontario Insurance Broker (RIBO Level 1) with a Computer Science degree. Experienced in logistics and sales operations, skilled in Excel-based order management, multi-channel customer communication, and combining technical tools with customer service.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Experience -->
+        <div class="bio-section" onclick="toggleSection(this)">
+            <div class="bio-header">
+                <span class="bio-title" data-en="Experience" data-zh="工作经历">Experience</span>
+                <span class="bio-icon">▼</span>
+            </div>
+            <div class="bio-content">
+                <div class="content-inner">
+                    <div class="exp-item">
+                        <div class="exp-title" data-en="Admin Office Manager / Logistics & Sales Operations" data-zh="行政办公室管理员 / 物流与销售运营">Admin Office Manager / Logistics & Sales Operations</div>
+                        <div class="exp-company">Venture Computers of Canada Inc.</div>
+                        <div class="exp-duration">Dec 2024 – Oct 2025 • Ontario, Canada</div>
+                        <ul class="exp-desc">
+                            <li data-en="Managed end-to-end logistics via Purolator, FedEx, UPS" data-zh="通过 Purolator、FedEx、UPS 管理全流程物流">Managed end-to-end logistics via Purolator, FedEx, UPS</li>
+                            <li data-en="Maintained CW system inventory with serial number tracking" data-zh="负责 CW 系统库存维护与序列号追踪">Maintained CW system inventory with serial number tracking</li>
+                            <li data-en="Handled quotations, sales orders, returns & RMA processes" data-zh="处理报价、销售订单、退货及 RMA 流程">Handled quotations, sales orders, returns & RMA processes</li>
+                            <li data-en="Excel-based order tracking; multi-channel support for TDSB, Best Buy" data-zh="Excel 订单追踪；为 TDSB、Best Buy 提供多渠道支持">Excel-based order tracking; multi-channel support for TDSB, Best Buy</li>
+                            <li data-en="Designed Excel templates improving team efficiency" data-zh="设计 Excel 模板提升团队效率">Designed Excel templates improving team efficiency</li>
+                        </ul>
+                    </div>
+
+                    <div class="exp-item">
+                        <div class="exp-title" data-en="AI R&D Intern" data-zh="AI 研发实习生">AI R&D Intern</div>
+                        <div class="exp-company">Shanghai Morsize Information Technology</div>
+                        <div class="exp-duration">Jun 2023 – Sep 2023 • Shanghai, China</div>
+                        <ul class="exp-desc">
+                            <li data-en="Built local LLM assistant using LLaMA + speech-to-text" data-zh="使用 LLaMA+ 语音转文字构建本地 LLM 助手">Built local LLM assistant using LLaMA + speech-to-text</li>
+                            <li data-en="Utilized OpenAI API, Stable Diffusion, ChatGLM" data-zh="运用 OpenAI API、Stable Diffusion、ChatGLM">Utilized OpenAI API, Stable Diffusion, ChatGLM</li>
+                        </ul>
+                    </div>
+
+                    <div class="exp-item">
+                        <div class="exp-title" data-en="Professional Services Engineer Intern" data-zh="专业服务工程师实习生">Professional Services Engineer Intern</div>
+                        <div class="exp-company">Commvault China</div>
+                        <div class="exp-duration">May 2023 – Sep 2023 • Shanghai, China</div>
+                        <ul class="exp-desc">
+                            <li data-en="Enterprise data backup & cloud recovery projects" data-zh="企业级数据备份与云恢复项目">Enterprise data backup & cloud recovery projects</li>
+                            <li data-en="Cross-regional team coordination (China-Philippines)" data-zh="跨区域团队协调（中国 - 菲律宾）">Cross-regional team coordination (China-Philippines)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skills -->
+        <div class="bio-section" onclick="toggleSection(this)">
+            <div class="bio-header">
+                <span class="bio-title" data-en="Skills" data-zh="技能">Skills</span>
+                <span class="bio-icon">▼</span>
+            </div>
+            <div class="bio-content">
+                <div class="content-inner">
+                    <div class="skills-grid">
+                        <div class="skill-item">
+                            <strong data-en="Sales" data-zh="销售">Sales</strong>
+                            <span data-en="Quotations, Orders, Customer Communication" data-zh="报价、订单、客户沟通">Quotations, Orders, Customer Communication</span>
+                        </div>
+                        <div class="skill-item">
+                            <strong data-en="Logistics" data-zh="物流">Logistics</strong>
+                            <span data-en="Inventory, Shipping, RMA" data-zh="库存、运输、退货">Inventory, Shipping, RMA</span>
+                        </div>
+                        <div class="skill-item">
+                            <strong data-en="Tech" data-zh="技术">Tech</strong>
+                            <span>Java, Python, MySQL, Excel</span>
+                        </div>
+                        <div class="skill-item">
+                            <strong data-en="AI" data-zh="人工智能">AI</strong>
+                            <span>LLaMA, OpenAI API, Stable Diffusion</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Certifications -->
+        <div class="bio-section" onclick="toggleSection(this)">
+            <div class="bio-header">
+                <span class="bio-title" data-en="Certifications" data-zh="证书">Certifications</span>
+                <span class="bio-icon">▼</span>
+            </div>
+            <div class="bio-content">
+                <div class="content-inner">
+                    <div class="cert-list">
+                        <div class="cert">📜 RIBO Level 1 (2026)</div>
+                        <div class="cert">☁️ AWS Cloud Practitioner</div>
+                        <div class="cert">📊 Google Data Analytics</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Education -->
+        <div class="bio-section" onclick="toggleSection(this)">
+            <div class="bio-header">
+                <span class="bio-title" data-en="Education" data-zh="教育">Education</span>
+                <span class="bio-icon">▼</span>
+            </div>
+            <div class="bio-content">
+                <div class="content-inner">
+                    <div class="exp-item">
+                        <div class="exp-title" data-en="BA Computer Science" data-zh="计算机科学学士">BA Computer Science</div>
+                        <div class="exp-company">York University, Toronto</div>
+                        <div class="exp-duration">Graduated 2023</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact -->
+        <div class="bio-section" onclick="toggleSection(this)">
+            <div class="bio-header">
+                <span class="bio-title" data-en="Contact" data-zh="联系">Contact</span>
+                <span class="bio-icon">▼</span>
+            </div>
+            <div class="bio-content">
+                <div class="content-inner">
+                    <div class="contact-info">
+                        <p>📍 Toronto, Ontario, Canada</p>
+                        <p>📧 [Your Email]</p>
+                        <p>💼 Open to Sales & Operations Opportunities</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p data-en="© 2026 Henry Jin (金宏霖) • Hosted on Raspberry Pi 5" data-zh="© 2026 Henry Jin (金宏霖) • 托管于 Raspberry Pi 5">© 2026 Henry Jin (金宏霖) • Hosted on Raspberry Pi 5</p>
+        </div>
+    </div>
+
+    <script>
+        let currentLang = 'en';
+
+        function toggleSection(el) {
+            el.classList.toggle('expanded');
+        }
+
+        function toggleAll() {
+            const all = document.querySelectorAll('.bio-section');
+            const isExpanded = all[0].classList.contains('expanded');
+            all.forEach(sec => {
+                if (isExpanded) sec.classList.remove('expanded');
+                else sec.classList.add('expanded');
+            });
+        }
+
+        function switchLang(lang) {
+            currentLang = lang;
+            document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+            document.getElementById('btn-zh').classList.toggle('active', lang === 'zh');
+            
+            document.querySelectorAll('[data-en]').forEach(el => {
+                el.textContent = el.getAttribute('data-' + lang);
+            });
+            
+            localStorage.setItem('lang', lang);
+        }
+
+        function loadLang() {
+            const saved = localStorage.getItem('lang') || 'en';
+            switchLang(saved);
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById('theme-btn');
+            const isDark = html.getAttribute('data-theme') === 'dark';
+            html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            btn.textContent = isDark ? '🌙' : '☀️';
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        }
+
+        function loadTheme() {
+            const saved = localStorage.getItem('theme') || 'light';
+            const html = document.documentElement;
+            const btn = document.getElementById('theme-btn');
+            html.setAttribute('data-theme', saved);
+            btn.textContent = saved === 'dark' ? '☀️' : '🌙';
+        }
+
+        loadTheme();
+        loadLang();
+    </script>
+</body>
+</html>

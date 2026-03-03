@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Building Self-Hosted AI Infrastructure | Henry Jin</title>
+    <style>
+        :root {
+            --bg: #fafafa; --card-bg: #ffffff; --text: #1a1a1a;
+            --text-light: #666666; --accent: #007aff; --border: #e5e5e5;
+        }
+        [data-theme="dark"] {
+            --bg: #0a0a0a; --card-bg: #1a1a1a; --text: #ffffff;
+            --text-light: #a0a0a0; --border: #333333;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+            background: var(--bg); color: var(--text); line-height: 1.7;
+        }
+        .nav {
+            position: fixed; top: 0; left: 0; right: 0;
+            background: var(--card-bg); border-bottom: 1px solid var(--border);
+            padding: 15px 20px; z-index: 1000;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .nav-brand { font-size: 18px; font-weight: 600; color: var(--text); text-decoration: none; }
+        .nav-links { display: flex; gap: 20px; }
+        .nav-link { color: var(--text-light); text-decoration: none; font-size: 14px; }
+        .nav-link:hover { color: var(--accent); }
+        .container { max-width: 800px; margin: 0 auto; padding: 80px 20px 40px; }
+        .post { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 40px; margin-bottom: 30px; }
+        .post-title { font-size: 28px; margin-bottom: 15px; color: var(--text); }
+        .post-meta { display: flex; gap: 15px; font-size: 14px; color: var(--text-light); margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+        .post-content h2 { font-size: 22px; margin: 30px 0 15px; color: var(--accent); }
+        .post-content h3 { font-size: 18px; margin: 25px 0 12px; }
+        .post-content p { margin-bottom: 15px; }
+        .post-content ul, .post-content ol { margin: 15px 0 15px 25px; }
+        .post-content li { margin-bottom: 8px; }
+        .post-content pre { background: var(--bg); padding: 15px; border-radius: 8px; overflow-x: auto; margin: 15px 0; font-family: 'SF Mono', Monaco, monospace; font-size: 13px; }
+        .post-content code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', Monaco, monospace; font-size: 13px; }
+        .post-content table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .post-content th, .post-content td { padding: 10px; border: 1px solid var(--border); text-align: left; }
+        .post-content th { background: var(--bg); font-weight: 600; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: var(--accent); text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">Henry Jin</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/posts/" class="nav-link active">Posts</a>
+            <a href="/about.html" class="nav-link">About</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <a href="/posts/" class="back-link">← Back to Posts</a>
+        
+        <article class="post">
+            <h1 class="post-title">🚀 Building My Self-Hosted AI Assistant Infrastructure</h1>
+            <div class="post-meta">
+                <time>Published: 2026-03-03</time>
+                <span>Reading time: 15 minutes</span>
+                <span>Tags: #selfhosted #ai #infrastructure #raspberrypi</span>
+            </div>
+
+            <div class="post-content">
+                <h2>📋 Overview</h2>
+                <p>Over the past two days (March 2-3, 2026), I built a comprehensive self-hosted AI assistant infrastructure on my Raspberry Pi 5. This post documents everything we accomplished, the challenges we faced, and the solutions we implemented.</p>
+
+                <h2>🎯 What We Built</h2>
+                
+                <h3>1. N1 Clash Proxy System</h3>
+                <p><strong>Goal:</strong> Create a reliable proxy for international traffic with automatic failover.</p>
+                <p><strong>Hardware:</strong> Phicomm N1 (TV box flashed with OpenWrt), IP: 192.168.51.2</p>
+                <pre>Internet → ChinaNet (192.168.1.1) → Redmi Router (192.168.51.1) → N1 Proxy (192.168.51.2)</pre>
+                <p><strong>Features:</strong></p>
+                <ul>
+                    <li>OpenClash with Meta core</li>
+                    <li>Automatic failover to backup proxy (192.168.31.11)</li>
+                    <li>Telegram notifications on failover</li>
+                    <li>Health checks every 2 minutes</li>
+                </ul>
+
+                <h3>2. Pi-hole DNS Ad-Blocker</h3>
+                <p><strong>Key Decision:</strong> Used Chinese DNS servers (114.114.114.114, 223.5.5.5) instead of Google/Cloudflare.</p>
+                <p><strong>Why?</strong></p>
+                <ul>
+                    <li>✅ Works without proxy</li>
+                    <li>✅ Fast response (~10ms)</li>
+                    <li>✅ Reliable even if all proxies go down</li>
+                    <li>✅ No GFW interference</li>
+                </ul>
+                <p><strong>Access:</strong> <code>http://192.168.51.74:8082/admin</code></p>
+
+                <h3>3. Pi Dashboard (System Monitor)</h3>
+                <p><strong>Tech Stack:</strong> Node.js backend, HTML/CSS frontend, PM2 process management, nginx reverse proxy</p>
+                <p><strong>Features:</strong></p>
+                <ul>
+                    <li>Live CPU, Memory, Temperature monitoring</li>
+                    <li>Top 5 processes by memory</li>
+                    <li>Uptime Kuma integration</li>
+                    <li>Auto-refresh every 30 seconds</li>
+                </ul>
+                <p><strong>Access:</strong> <code>http://192.168.51.74:8080/admin/</code> or <code>http://henryjin8s.xyz:8080/admin/</code></p>
+
+                <h3>4. Cloudflare Tunnel</h3>
+                <p><strong>Goal:</strong> Make dashboard accessible from anywhere without port forwarding.</p>
+                <p><strong>Key Learning:</strong> Cloudflare tunnel needs proxy to CONNECT (GFW blocks Cloudflare API) but NOT for traffic (already routed through tunnel).</p>
+                <p><strong>Important:</strong> Added Cloudflare domains to Clash DIRECT list to prevent routing loop!</p>
+                <pre>rules:
+  - DOMAIN,henryjin8s.xyz,DIRECT
+  - DOMAIN-SUFFIX,cloudflare.com,DIRECT</pre>
+
+                <h3>5. Uptime Kuma Monitoring</h3>
+                <p><strong>Monitors Added:</strong> Pi Dashboard (HTTP check every 60s), Website, OpenClaw Gateway, SSH, Alibaba Cloud TCP</p>
+                <p><strong>Access:</strong> <code>http://192.168.51.74:3001</code></p>
+
+                <h2>🎯 Challenges & Solutions</h2>
+                
+                <h3>Challenge 1: Google Custom Search API Not Working</h3>
+                <p><strong>Problem:</strong> API returned 403 "Permission Denied"</p>
+                <p><strong>Root Cause:</strong> Google discontinued Custom Search JSON API for new customers in 2022.</p>
+                <p><strong>Solution:</strong> Switched to Jina AI Reader (r.jina.ai) - free, unlimited!</p>
+
+                <h3>Challenge 2: Cloudflare Tunnel 502 Errors</h3>
+                <p><strong>Problem:</strong> Domain access returned HTTP 502</p>
+                <p><strong>Solution:</strong> Added proxy configuration to cloudflared service</p>
+                <p><strong>Key Learning:</strong> Cloudflare API needs proxy to CONNECT, but traffic through tunnel doesn't need proxy.</p>
+
+                <h3>Challenge 3: Clash Routing Loop</h3>
+                <p><strong>Problem:</strong> Domain worked in private browser tab but not regular tab</p>
+                <p><strong>Solution:</strong> Added Cloudflare domains to Clash DIRECT list</p>
+
+                <h3>Challenge 4: Dashboard Not Loading</h3>
+                <p><strong>Problems:</strong></p>
+                <ol>
+                    <li>Frontend fetch missing credentials</li>
+                    <li>Login not calling API</li>
+                    <li>PM2 cluster mode issues</li>
+                    <li>Browser cache</li>
+                </ol>
+                <p><strong>Solutions:</strong></p>
+                <ol>
+                    <li>Added <code>{credentials: 'include'}</code> to fetch calls</li>
+                    <li>Fixed login to call <code>/api/login</code> API</li>
+                    <li>Changed PM2 from cluster to fork mode</li>
+                    <li>Added no-cache headers to HTML</li>
+                </ol>
+
+                <h2>💡 Key Learnings</h2>
+                <ol>
+                    <li><strong>Cloudflare Tunnel</strong> needs proxy to connect (GFW) but not for traffic</li>
+                    <li><strong>Clash routing</strong> - Don't proxy tunneled traffic (creates loops)</li>
+                    <li><strong>Browser cache</strong> - Major source of "works in private tab" issues</li>
+                    <li><strong>Google APIs</strong> - Read documentation carefully (some discontinued)</li>
+                    <li><strong>Jina AI Reader</strong> - Great free alternative for URL fetching</li>
+                    <li><strong>PM2 modes</strong> - Use fork for single-instance apps</li>
+                </ol>
+
+                <h2>📈 Current Status</h2>
+                <table>
+                    <tr><th>Service</th><th>Status</th><th>Access</th></tr>
+                    <tr><td>N1 Clash Proxy</td><td>✅ Running</td><td>192.168.51.2:7890</td></tr>
+                    <tr><td>Proxy Failover</td><td>✅ Active</td><td>51.2 → 31.11</td></tr>
+                    <tr><td>Pi-hole</td><td>✅ Running</td><td>192.168.51.74:8082</td></tr>
+                    <tr><td>Pi Dashboard</td><td>✅ Running</td><td>Local + Domain</td></tr>
+                    <tr><td>Uptime Kuma</td><td>✅ Monitoring</td><td>192.168.51.74:3001</td></tr>
+                    <tr><td>Cloudflare Tunnel</td><td>✅ Connected</td><td>3 connections</td></tr>
+                </table>
+
+                <h2>🔗 Useful Links</h2>
+                <ul>
+                    <li><a href="https://docs.openclaw.ai" target="_blank">OpenClaw Documentation</a></li>
+                    <li><a href="https://developers.cloudflare.com/cloudflare-one/" target="_blank">Cloudflare Tunnel Docs</a></li>
+                    <li><a href="https://docs.pi-hole.net/" target="_blank">Pi-hole Documentation</a></li>
+                    <li><a href="https://github.com/louislam/uptime-kuma" target="_blank">Uptime Kuma</a></li>
+                    <li><a href="https://r.jina.ai/" target="_blank">Jina AI Reader</a></li>
+                </ul>
+            </div>
+        </article>
+    </div>
+
+    <script>
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        function applyTheme(dark) {
+            document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        }
+        applyTheme(prefersDark.matches);
+        prefersDark.addEventListener('change', e => applyTheme(e.matches));
+    </script>
+</body>
+</html>

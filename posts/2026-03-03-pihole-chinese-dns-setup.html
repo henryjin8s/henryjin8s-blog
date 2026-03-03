@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi-hole with Chinese DNS | Henry Jin</title>
+    <style>
+        :root { --bg: #fafafa; --card-bg: #ffffff; --text: #1a1a1a; --text-light: #666666; --accent: #007aff; --border: #e5e5e5; }
+        [data-theme="dark"] { --bg: #0a0a0a; --card-bg: #1a1a1a; --text: #ffffff; --text-light: #a0a0a0; --border: #333333; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+        .nav { position: fixed; top: 0; left: 0; right: 0; background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 20px; z-index: 1000; display: flex; justify-content: space-between; align-items: center; }
+        .nav-brand { font-size: 18px; font-weight: 600; color: var(--text); text-decoration: none; }
+        .nav-links { display: flex; gap: 20px; }
+        .nav-link { color: var(--text-light); text-decoration: none; font-size: 14px; }
+        .nav-link:hover { color: var(--accent); }
+        .container { max-width: 800px; margin: 0 auto; padding: 80px 20px 40px; }
+        .post { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 40px; }
+        .post-title { font-size: 28px; margin-bottom: 15px; }
+        .post-meta { display: flex; gap: 15px; font-size: 14px; color: var(--text-light); margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+        .post-content h2 { font-size: 22px; margin: 30px 0 15px; color: var(--accent); }
+        .post-content h3 { font-size: 18px; margin: 25px 0 12px; }
+        .post-content p { margin-bottom: 15px; }
+        .post-content ul, .post-content ol { margin: 15px 0 15px 25px; }
+        .post-content li { margin-bottom: 8px; }
+        .post-content pre { background: var(--bg); padding: 15px; border-radius: 8px; overflow-x: auto; margin: 15px 0; font-family: 'SF Mono', Monaco, monospace; font-size: 13px; }
+        .post-content code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', Monaco, monospace; font-size: 13px; }
+        .post-content table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .post-content th, .post-content td { padding: 10px; border: 1px solid var(--border); text-align: left; }
+        .post-content th { background: var(--bg); font-weight: 600; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: var(--accent); text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">Henry Jin</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/posts/" class="nav-link active">Posts</a>
+            <a href="/about.html" class="nav-link">About</a>
+        </div>
+    </nav>
+    <div class="container">
+        <a href="/posts/" class="back-link">← Back to Posts</a>
+        <article class="post">
+            <h1 class="post-title">🛡️ Setting Up Pi-hole with Chinese DNS for Stability</h1>
+            <div class="post-meta">
+                <time>Published: 2026-03-03</time>
+                <span>Reading time: 10 minutes</span>
+                <span>Tags: #pihole #dns #networking</span>
+            </div>
+            <div class="post-content">
+                <h2>📋 Overview</h2>
+                <p>Pi-hole is a popular DNS ad-blocker, but most tutorials recommend using Google DNS (8.8.8.8) or Cloudflare (1.1.1.1). For users in China, this creates a dependency on proxies.</p>
+                <p><strong>Our Solution:</strong> Use Chinese DNS servers that work reliably without proxy!</p>
+
+                <h2>🎯 Why Chinese DNS?</h2>
+                <table>
+                    <tr><th>DNS Provider</th><th>IPs</th><th>Latency</th><th>Needs Proxy?</th></tr>
+                    <tr><td>Google</td><td>8.8.8.8</td><td>~200ms</td><td>❌ Blocked</td></tr>
+                    <tr><td>Cloudflare</td><td>1.1.1.1</td><td>~180ms</td><td>❌ Blocked</td></tr>
+                    <tr><td>114DNS</td><td>114.114.114.114</td><td>~10ms</td><td>✅ No</td></tr>
+                    <tr><td>AliDNS</td><td>223.5.5.5</td><td>~15ms</td><td>✅ No</td></tr>
+                    <tr><td>BaiduDNS</td><td>180.76.76.76</td><td>~20ms</td><td>✅ No</td></tr>
+                </table>
+                <p><strong>Benefits:</strong></p>
+                <ul>
+                    <li>✅ Fast response (~10-20ms vs ~200ms)</li>
+                    <li>✅ Works without proxy</li>
+                    <li>✅ Reliable even if proxies go down</li>
+                    <li>✅ No GFW interference</li>
+                </ul>
+
+                <h2>🚀 Installation</h2>
+                <h3>Step 1: Install Docker</h3>
+                <pre>curl -fsSL https://get.docker.com | sh</pre>
+
+                <h3>Step 2: Run Pi-hole Container</h3>
+                <pre>docker run -d \
+  --name pihole \
+  -p 53:53/tcp -p 53:53/udp \
+  -p 8082:80/tcp \
+  -e TZ="Asia/Shanghai" \
+  -e WEBPASSWORD="pihole123" \
+  -e DNS1="114.114.114.114" \
+  -e DNS2="223.5.5.5" \
+  -e DNS3="180.76.76.76" \
+  -v /home/henry/pihole/etc-pihole:/etc/pihole \
+  -v /home/henry/pihole/etc-dnsmasq.d:/etc/dnsmasq.d \
+  --restart=unless-stopped \
+  pihole/pihole:latest</pre>
+
+                <h3>Step 3: Access Admin Interface</h3>
+                <pre>http://192.168.51.74:8082/admin
+Password: pihole123</pre>
+
+                <h2>📊 Performance Comparison</h2>
+                <h3>Before (Google DNS via Proxy)</h3>
+                <pre>Query Time: ~200ms
+Dependency: Proxy must be working
+Reliability: ❌ Fails if proxy down</pre>
+
+                <h3>After (Chinese DNS Direct)</h3>
+                <pre>Query Time: ~10ms (20x faster!)
+Dependency: None
+Reliability: ✅ Works even if proxies down</pre>
+
+                <h2>💡 Lessons Learned</h2>
+                <ol>
+                    <li>Use local DNS servers when possible (faster, more reliable)</li>
+                    <li>Don't depend on proxy for DNS (single point of failure)</li>
+                    <li>Multiple upstream DNS for redundancy</li>
+                    <li>Docker makes backup easy (just copy volumes)</li>
+                    <li>Monitor DNS performance (query time, cache hit rate)</li>
+                </ol>
+            </div>
+        </article>
+    </div>
+    <script>
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        function applyTheme(dark) { document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light'); }
+        applyTheme(prefersDark.matches);
+        prefersDark.addEventListener('change', e => applyTheme(e.matches));
+    </script>
+</body>
+</html>

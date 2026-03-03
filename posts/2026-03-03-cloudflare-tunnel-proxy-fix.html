@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Tunnel Proxy Fix | Henry Jin</title>
+    <style>
+        :root { --bg: #fafafa; --card-bg: #ffffff; --text: #1a1a1a; --text-light: #666666; --accent: #007aff; --border: #e5e5e5; }
+        [data-theme="dark"] { --bg: #0a0a0a; --card-bg: #1a1a1a; --text: #ffffff; --text-light: #a0a0a0; --border: #333333; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+        .nav { position: fixed; top: 0; left: 0; right: 0; background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 20px; z-index: 1000; display: flex; justify-content: space-between; align-items: center; }
+        .nav-brand { font-size: 18px; font-weight: 600; color: var(--text); text-decoration: none; }
+        .nav-links { display: flex; gap: 20px; }
+        .nav-link { color: var(--text-light); text-decoration: none; font-size: 14px; }
+        .nav-link:hover { color: var(--accent); }
+        .container { max-width: 800px; margin: 0 auto; padding: 80px 20px 40px; }
+        .post { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 40px; }
+        .post-title { font-size: 28px; margin-bottom: 15px; }
+        .post-meta { display: flex; gap: 15px; font-size: 14px; color: var(--text-light); margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+        .post-content h2 { font-size: 22px; margin: 30px 0 15px; color: var(--accent); }
+        .post-content h3 { font-size: 18px; margin: 25px 0 12px; }
+        .post-content p { margin-bottom: 15px; }
+        .post-content ul, .post-content ol { margin: 15px 0 15px 25px; }
+        .post-content li { margin-bottom: 8px; }
+        .post-content pre { background: var(--bg); padding: 15px; border-radius: 8px; overflow-x: auto; margin: 15px 0; font-family: 'SF Mono', Monaco, monospace; font-size: 13px; }
+        .post-content code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', Monaco, monospace; font-size: 13px; }
+        .post-content table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .post-content th, .post-content td { padding: 10px; border: 1px solid var(--border); text-align: left; }
+        .post-content th { background: var(--bg); font-weight: 600; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: var(--accent); text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">Henry Jin</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/posts/" class="nav-link active">Posts</a>
+            <a href="/about.html" class="nav-link">About</a>
+        </div>
+    </nav>
+    <div class="container">
+        <a href="/posts/" class="back-link">← Back to Posts</a>
+        <article class="post">
+            <h1 class="post-title">🔧 Cloudflare Tunnel: Why It Needs Proxy (And Why It Doesn't)</h1>
+            <div class="post-meta">
+                <time>Published: 2026-03-03</time>
+                <span>Reading time: 8 minutes</span>
+                <span>Tags: #cloudflare #networking #proxy</span>
+            </div>
+            <div class="post-content">
+                <h2>📋 The Confusion</h2>
+                <p>When setting up Cloudflare Tunnel in China, I encountered a confusing situation:</p>
+                <ul>
+                    <li>❌ Tunnel wouldn't connect without proxy</li>
+                    <li>✅ Once connected, traffic works without proxy</li>
+                    <li>❌ Clash proxying Cloudflare traffic broke everything</li>
+                </ul>
+
+                <h2>🎯 Cloudflare Has TWO Parts</h2>
+                
+                <h3>Part 1: Cloudflare API (Connection)</h3>
+                <p><strong>What It Does:</strong> Tunnel connects to Cloudflare's edge network, establishes secure tunnel, authenticates with Cloudflare</p>
+                <p><strong>Needs Proxy?</strong> ✅ <strong>YES!</strong></p>
+                <p><strong>Why:</strong> GFW blocks <code>api.cloudflare.com</code> and Cloudflare's edge IPs.</p>
+                <pre>[Service]
+Environment="HTTP_PROXY=http://192.168.51.2:7890"
+Environment="HTTPS_PROXY=http://192.168.51.2:7890"</pre>
+
+                <h3>Part 2: Cloudflare CDN (Traffic)</h3>
+                <p><strong>What It Does:</strong> Users access your site through Cloudflare, traffic flows through established tunnel</p>
+                <p><strong>Needs Proxy?</strong> ❌ <strong>NO!</strong></p>
+                <p><strong>Why:</strong> Traffic is already routed through the tunnel. No need for proxy!</p>
+
+                <h2>🐛 The Problem I Faced</h2>
+                <p><strong>Symptoms:</strong></p>
+                <ul>
+                    <li>✅ Domain works in private browser tab</li>
+                    <li>❌ Domain fails in regular tab</li>
+                    <li>✅ Works when Clash is disabled</li>
+                    <li>❌ 502 errors with Clash enabled</li>
+                </ul>
+                <p><strong>Root Cause:</strong> Clash was proxying Cloudflare traffic, creating a routing loop!</p>
+
+                <h2>✅ The Solution</h2>
+                <p>Add Cloudflare to Clash DIRECT List:</p>
+                <pre>rules:
+  - DOMAIN,henryjin8s.xyz,DIRECT
+  - DOMAIN,www.henryjin8s.xyz,DIRECT
+  - DOMAIN-SUFFIX,cloudflare.com,DIRECT
+  - DOMAIN-SUFFIX,cloudflare.net,DIRECT</pre>
+
+                <h2>📊 Correct Configuration</h2>
+                <table>
+                    <tr><th>Aspect</th><th>Connection</th><th>Traffic</th></tr>
+                    <tr><td>What</td><td>Tunnel connects to Cloudflare</td><td>Users access your site</td></tr>
+                    <tr><td>Needs Proxy?</td><td>✅ YES (GFW blocks API)</td><td>❌ NO (already routed)</td></tr>
+                    <tr><td>Configuration</td><td>cloudflared service</td><td>Clash rules</td></tr>
+                </table>
+
+                <h2>💡 Lessons Learned</h2>
+                <ol>
+                    <li>Cloudflare API needs proxy (blocked by GFW)</li>
+                    <li>Cloudflare traffic doesn't need proxy (already routed)</li>
+                    <li>Don't proxy tunneled traffic (creates routing loop)</li>
+                    <li>Add Cloudflare to DIRECT list in Clash</li>
+                    <li>Browser cache causes confusion (clear it!)</li>
+                </ol>
+            </div>
+        </article>
+    </div>
+    <script>
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        function applyTheme(dark) { document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light'); }
+        applyTheme(prefersDark.matches);
+        prefersDark.addEventListener('change', e => applyTheme(e.matches));
+    </script>
+</body>
+</html>

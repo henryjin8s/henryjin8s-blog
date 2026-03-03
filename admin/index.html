@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        :root { --bg: #0f0f0f; --card: #1a1a1a; --text: #ffffff; --accent: #00ff88; --danger: #ff4444; --warn: #ffaa00; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'SF Mono', 'Monaco', monospace; background: var(--bg); color: var(--text); min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        
+        /* Login */
+        #login-screen { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .login-box { background: var(--card); padding: 40px; border-radius: 12px; border: 1px solid #333; width: 100%; max-width: 400px; }
+        .login-box h1 { text-align: center; margin-bottom: 30px; color: var(--accent); }
+        .login-box input { width: 100%; padding: 12px; margin-bottom: 15px; background: #0a0a0a; border: 1px solid #333; color: white; border-radius: 6px; font-size: 14px; }
+        .login-box button { width: 100%; padding: 12px; background: var(--accent); color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .login-box button:hover { opacity: 0.9; }
+        .error { color: var(--danger); text-align: center; margin-top: 10px; display: none; }
+        
+        /* Dashboard */
+        #dashboard { display: none; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 1px solid #333; margin-bottom: 30px; }
+        header h1 { color: var(--accent); }
+        .logout-btn { background: var(--danger); color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid #333; }
+        .card h2 { color: var(--accent); margin-bottom: 15px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+        
+        .stat-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #2a2a2a; }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { color: #888; }
+        .stat-value { font-weight: bold; }
+        .stat-value.good { color: var(--accent); }
+        .stat-value.warn { color: var(--warn); }
+        .stat-value.bad { color: var(--danger); }
+        
+        .monitor-item { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #2a2a2a; }
+        .monitor-status { width: 10px; height: 10px; border-radius: 50%; }
+        .monitor-status.up { background: var(--accent); }
+        .monitor-status.down { background: var(--danger); }
+        .monitor-name { flex: 1; }
+        .monitor-msg { color: #666; font-size: 12px; }
+        
+        .process-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .process-table th { text-align: left; color: #666; padding: 8px 4px; border-bottom: 1px solid #333; }
+        .process-table td { padding: 8px 4px; border-bottom: 1px solid #2a2a2a; }
+        
+        .refresh-btn { background: #333; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-left: 10px; }
+        .refresh-btn:hover { background: #444; }
+        
+        .last-update { color: #666; font-size: 12px; margin-top: 10px; }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .loading { animation: pulse 1s infinite; }
+    </style>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+</head>
+<body>
+    <div id="login-screen">
+        <div class="login-box">
+            <h1>🔐 Admin Access</h1>
+            <input type="text" id="username" placeholder="Username" autocomplete="username">
+            <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+            <button onclick="login()">Login</button>
+            <p class="error" id="login-error">Invalid credentials</p>
+        </div>
+    </div>
+
+    <div id="dashboard" class="container">
+        <header>
+            <h1>🖥️ Pi Dashboard <button class="refresh-btn" onclick="loadStats()">⟳ Refresh</button></h1>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <h2>📊 System Stats</h2>
+                <div class="stat-row"><span class="stat-label">CPU Usage</span><span class="stat-value" id="cpu">-</span></div>
+                <div class="stat-row"><span class="stat-label">Memory</span><span class="stat-value" id="mem">-</span></div>
+                <div class="stat-row"><span class="stat-label">Temperature</span><span class="stat-value" id="temp">-</span></div>
+                <div class="stat-row"><span class="stat-label">Disk Usage</span><span class="stat-value" id="disk">-</span></div>
+                <div class="stat-row"><span class="stat-label">Uptime</span><span class="stat-value" id="uptime">-</span></div>
+                <div class="stat-row"><span class="stat-label">Load Average</span><span class="stat-value" id="load">-</span></div>
+            </div>
+
+            <div class="card">
+                <h2>💚 Service Monitors</h2>
+                <div class="monitor-item">
+                    <div class="monitor-status up"></div>
+                    <div class="monitor-name">
+                        <div>OpenClaw Gateway</div>
+                        <div class="monitor-msg">Port 18789 • AI Assistant</div>
+                    </div>
+                </div>
+                <div class="monitor-item">
+                    <div class="monitor-status up"></div>
+                    <div class="monitor-name">
+                        <div>Uptime Kuma</div>
+                        <div class="monitor-msg">Port 3001 • Monitoring</div>
+                    </div>
+                </div>
+                <div class="monitor-item">
+                    <div class="monitor-status up"></div>
+                    <div class="monitor-name">
+                        <div>Nginx</div>
+                        <div class="monitor-msg">Port 8080 • Web Server</div>
+                    </div>
+                </div>
+                <div class="monitor-item">
+                    <div class="monitor-status up"></div>
+                    <div class="monitor-name">
+                        <div>SSH</div>
+                        <div class="monitor-msg">Port 22 • Remote Access</div>
+                    </div>
+                </div>
+                <div class="monitor-item">
+                    <div class="monitor-status up"></div>
+                    <div class="monitor-name">
+                        <div>Bailian Monitor</div>
+                        <div class="monitor-msg">Every 10min • API Health</div>
+                    </div>
+                </div>
+                <div class="monitor-item">
+                    <div class="monitor-status up"></div>
+                    <div class="monitor-name">
+                        <div>Clash Proxy</div>
+                        <div class="monitor-msg">Port 7890 • Primary</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="grid-column: 1 / -1;">
+                <h2>⚡ Top Processes (by Memory)</h2>
+                <table class="process-table">
+                    <thead><tr><th>USER</th><th>PID</th><th>CPU%</th><th>MEM%</th><th>COMMAND</th></tr></thead>
+                    <tbody id="processes"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <p class="last-update">Last updated: <span id="last-update">-</span></p>
+    </div>
+
+    <script>
+        const USERNAME = 'henry';
+        const PASSWORD = 'Dfhj1109!';
+
+        function checkAuth() {
+            if (sessionStorage.getItem('authenticated') === 'true') {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                loadStats();
+            }
+        }
+
+        async function login() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify({username: user, password: pass})
+                });
+                const result = await response.json();
+                if (result.success) {
+                    sessionStorage.setItem('authenticated', 'true');
+                    checkAuth();
+                } else {
+                    document.getElementById('login-error').style.display = 'block';
+                    document.getElementById('login-error').textContent = result.error || 'Login failed';
+                }
+            } catch (e) {
+                document.getElementById('login-error').style.display = 'block';
+                document.getElementById('login-error').textContent = 'Network error: ' + e.message;
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('authenticated');
+            location.reload();
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats', {credentials: 'include'});
+                const data = await response.json();
+                
+                document.getElementById('cpu').textContent = data.piStats.cpu;
+                document.getElementById('cpu').className = 'stat-value ' + (parseFloat(data.piStats.cpu) > 80 ? 'bad' : 'good');
+                
+                document.getElementById('mem').textContent = data.piStats.mem;
+                document.getElementById('mem').className = 'stat-value ' + (parseFloat(data.piStats.mem) > 80 ? 'bad' : 'good');
+                
+                document.getElementById('temp').textContent = data.piStats.temp;
+                document.getElementById('temp').className = 'stat-value ' + (parseFloat(data.piStats.temp) > 80 ? 'warn' : 'good');
+                
+                document.getElementById('disk').textContent = data.piStats.disk;
+                document.getElementById('uptime').textContent = data.piStats.uptime;
+                document.getElementById('load').textContent = data.piStats.load;
+                
+                const processes = document.getElementById('processes');
+                processes.innerHTML = '';
+                data.piStats.processes.forEach(proc => {
+                    const row = `<tr><td>${proc.user}</td><td>${proc.pid}</td><td>${proc.cpu}</td><td>${proc.mem}</td><td>${proc.command}</td></tr>`;
+                    processes.innerHTML += row;
+                });
+                
+                document.getElementById('last-update').textContent = new Date().toLocaleString();
+
+                // Render Uptime Kuma monitors dynamically
+                const kumaContainer = document.getElementById('kuma-monitors');
+                if (kumaContainer) {
+                    kumaContainer.innerHTML = '';
+                    data.kumaStatus.forEach(monitor => {
+                        const statusClass = monitor.status === 1 ? 'up' : 'down';
+                        const statusText = monitor.status === 1 ? '✅' : '❌';
+                        const html = `
+                            <div class="monitor-item">
+                                <div class="monitor-status ${statusClass}"></div>
+                                <div class="monitor-name">
+                                    <div>${statusText} ${monitor.name}</div>
+                                    <div class="monitor-msg">${monitor.msg || 'Checking...'}</div>
+                                </div>
+                            </div>
+                        `;
+                        kumaContainer.innerHTML += html;
+                    });
+                }
+
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        checkAuth();
+        setInterval(loadStats, 30000);
+    </script>
+<script src="debug-loadStats.js"></script></body>
+</html>
