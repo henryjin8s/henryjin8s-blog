@@ -5,7 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { exec } = require('child_process');
 
-const PORT = 8081;
+const PORT = 8083;
 const SECRET_PATH = '/admin';
 const SESSION_DURATION = 3600000;
 
