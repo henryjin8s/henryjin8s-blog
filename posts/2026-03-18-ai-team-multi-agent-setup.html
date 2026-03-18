@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Team Multi-Agent Setup - Henry's Blog</title>
+    <style>
+        :root {
+            --bg: #fafafa;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --text-light: #666666;
+            --accent: #007aff;
+            --border: #e5e5e5;
+            --code-bg: #f5f5f5;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0a0a0a;
+            --card-bg: #1a1a1a;
+            --text: #ffffff;
+            --text-light: #a0a0a0;
+            --border: #333333;
+            --code-bg: #2a2a2a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 20px;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover { color: var(--accent); }
+        .nav-link.active { color: var(--accent); font-weight: 500; }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover { transform: scale(1.05); }
+        .btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Container */
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 80px 20px 40px;
+        }
+
+        /* Post Header */
+        .post-header {
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            color: var(--text-light);
+            margin-bottom: 15px;
+        }
+
+        .post-tag {
+            background: var(--accent);
+            color: white;
+            padding: 3px 12px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        .post-title {
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 10px;
+        }
+
+        .post-subtitle {
+            font-size: 18px;
+            color: var(--text-light);
+            font-weight: 400;
+        }
+
+        /* Post Content */
+        .post-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+
+        .post-content h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 40px 0 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .post-content h2:first-child {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+
+        .post-content h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 30px 0 15px;
+        }
+
+        .post-content p {
+            margin-bottom: 15px;
+            font-size: 16px;
+            line-height: 1.8;
+        }
+
+        .post-content ul, .post-content ol {
+            margin: 15px 0 15px 25px;
+        }
+
+        .post-content li {
+            margin-bottom: 10px;
+            line-height: 1.7;
+        }
+
+        .post-content a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .post-content a:hover {
+            text-decoration: underline;
+        }
+
+        /* Code Blocks */
+        .post-content pre {
+            background: var(--code-bg);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .post-content code {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 14px;
+        }
+
+        .post-content p code {
+            background: var(--code-bg);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        /* Tables */
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .post-content th, .post-content td {
+            border: 1px solid var(--border);
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        .post-content th {
+            background: var(--code-bg);
+            font-weight: 600;
+        }
+
+        .post-content tr:hover {
+            background: var(--code-bg);
+        }
+
+        /* Diagrams */
+        .diagram {
+            background: var(--code-bg);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        /* Footer */
+        .post-footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-light);
+            font-size: 14px;
+            margin-top: 40px;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            .container { padding: 70px 16px 30px; }
+            .post-content { padding: 25px; }
+            .post-title { font-size: 26px; }
+            .post-header { padding-bottom: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">Henry's Blog</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Blog</a>
+            <a href="/about.html" class="nav-link">About</a>
+        </div>
+        <div class="controls">
+            <button class="btn" onclick="toggleTheme()" id="theme-btn">🌙</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <a href="/" class="back-link">← Back to Blog</a>
+
+        <div class="post-header">
+            <div class="post-meta">
+                <span class="post-tag">AI</span>
+                <span>2026-03-18</span>
+                <span>15 min read</span>
+            </div>
+            <h1 class="post-title">🤖 AI Team Multi-Agent Setup: Building a Collaborative AI Workflow</h1>
+            <p class="post-subtitle">How I built a team of 3 specialized AI agents that work together</p>
+        </div>
+
+        <div class="post-content">
+            <h2>Overview</h2>
+            <p>Today I set up a <strong>multi-agent AI team</strong> using OpenClaw Gateway. Instead of one AI assistant doing everything, I now have <strong>three specialized agents</strong> working together:</p>
+            <ul>
+                <li><strong>Manager</strong> 👔 - Requirements validation & coordination</li>
+                <li><strong>Verifier</strong> 🔍 - Code review & quality assurance</li>
+                <li><strong>Coder</strong> 💻 - Implementation & bug fixes</li>
+            </ul>
+            <p>This post documents the architecture, configuration, and lessons learned.</p>
+
+            <h2>Why Multi-Agent?</h2>
+            <p>Single AI assistants are great, but they have limitations:</p>
+            <ol>
+                <li><strong>Context switching</strong> - Jumping between planning, coding, and reviewing</li>
+                <li><strong>No built-in review</strong> - Code isn't checked before delivery</li>
+                <li><strong>Unclear workflow</strong> - Hard to track progress on complex tasks</li>
+            </ol>
+            <p>A <strong>team of specialized agents</strong> solves this:</p>
+            <div class="diagram">Henry → Manager → Verifier → Coder → Verifier → Manager → Henry
+         (reqs)    (plan)    (code)   (review)  (deliver)</div>
+            <p>Each agent has a clear role, isolated workspace, and specific tools.</p>
+
+            <h2>Architecture</h2>
+            <h3>Agent Roles</h3>
+            <table>
+                <tr>
+                    <th>Agent</th>
+                    <th>Role</th>
+                    <th>Communication</th>
+                    <th>Tools</th>
+                </tr>
+                <tr>
+                    <td><strong>Manager</strong></td>
+                    <td>Team lead, requirements</td>
+                    <td>Main channel only</td>
+                    <td>Messaging, sessions</td>
+                </tr>
+                <tr>
+                    <td><strong>Verifier</strong></td>
+                    <td>QA specialist, reviews</td>
+                    <td>Main channel + threads</td>
+                    <td>Coding (no runtime)</td>
+                </tr>
+                <tr>
+                    <td><strong>Coder</strong></td>
+                    <td>Implementation</td>
+                    <td><strong>Thread only</strong></td>
+                    <td>Full coding tools</td>
+                </tr>
+            </table>
+
+            <h3>Communication Flow</h3>
+            <div class="diagram">┌─────────────┐
+│   Henry     │ (User - Discord channel)
+└──────┬──────┘
+       │ @mention
+       ▼
+┌─────────────┐
+│   Manager   │ (Main channel)
+│  👔 John    │ - Validates requirements
+└──────┬──────┘ - Delegates to Verifier
+       │ sessions_send
+       ▼
+┌─────────────┐
+│  Verifier   │ (Main channel + Threads)
+│  🔍 Sarah   │ - Analyzes requirements
+└──────┬──────┘ - Reviews code
+       │ sessions_send
+       ▼
+┌─────────────┐
+│   Coder     │ (Thread ONLY!)
+│  💻 Alex    │ - Writes code
+└─────────────┘ - Fixes issues</div>
+
+            <h3>Key Design Decisions</h3>
+            <ol>
+                <li><strong>Isolated Workspaces</strong> - Each agent has its own <code>workspace-&lt;agent&gt;/</code> folder</li>
+                <li><strong>Agent-to-Agent Communication</strong> - Via <code>sessions_send</code> tool with ping-pong</li>
+                <li><strong>Coder Thread-Only</strong> - Enforced via tool restrictions (<code>message</code> denied)</li>
+                <li><strong>Ping-Pong Workflow</strong> - Automatic alternation (max 5 turns)</li>
+            </ol>
+
+            <h2>Configuration</h2>
+            <h3>1. Agent Definitions</h3>
+            <pre><code>{
+  "agents": {
+    "list": [
+      {
+        "id": "manager",
+        "name": "AI Team - Manager",
+        "workspace": "/home/henry/.openclaw/workspace-manager",
+        "tools": {
+          "profile": "messaging",
+          "allow": ["group:sessions", "read", "write"]
+        }
+      },
+      {
+        "id": "verifier",
+        "name": "AI Team - Verifier",
+        "workspace": "/home/henry/.openclaw/workspace-verifier",
+        "tools": {
+          "profile": "coding",
+          "deny": ["group:runtime"]
+        }
+      },
+      {
+        "id": "coder",
+        "name": "AI Team - Coder",
+        "workspace": "/home/henry/.openclaw/workspace-coder",
+        "tools": {
+          "deny": ["message"],
+          "allow": ["group:sessions", "group:fs", "group:runtime"]
+        }
+      }
+    ]
+  }
+}</code></pre>
+
+            <h3>2. Agent-to-Agent Permissions</h3>
+            <pre><code>{
+  "tools": {
+    "agentToAgent": {
+      "enabled": true,
+      "allow": ["manager", "verifier", "coder"]
+    },
+    "sessions": {
+      "visibility": "all"
+    }
+  },
+  "session": {
+    "agentToAgent": {
+      "maxPingPongTurns": 5
+    }
+  }
+}</code></pre>
+
+            <h3>3. Discord Bindings</h3>
+            <pre><code>{
+  "bindings": [
+    { "agentId": "manager", "match": { "channel": "discord", "accountId": "manager" } },
+    { "agentId": "verifier", "match": { "channel": "discord", "accountId": "verifier" } },
+    { "agentId": "coder", "match": { "channel": "discord", "accountId": "coder" } }
+  ]
+}</code></pre>
+
+            <h2>Workflow Example</h2>
+            <h3>Task: Build a Login Feature</h3>
+            <p><strong>1. Henry @Mentions Manager</strong></p>
+            <pre><code>@AI Team - Manager Build a login feature with email + password</code></pre>
+
+            <p><strong>2. Manager Acknowledges (Main Channel)</strong></p>
+            <pre><code>Got it! Building a login feature with email/password authentication.
+I'll have the team start on this. 🔍</code></pre>
+
+            <p><strong>3. Manager → Verifier (Internal)</strong></p>
+            <pre><code>sessions_send: "Henry needs: login feature with email + password.
+Please analyze and delegate to Coder."</code></pre>
+
+            <p><strong>4. Verifier Analyzes (Main Channel)</strong></p>
+            <pre><code>📝 Analyzing requirements:
+- Email validation (format check)
+- Password hashing (bcrypt)
+- Session management
+Breaking into tasks for Coder...</code></pre>
+
+            <p><strong>5. Verifier → Coder (Internal)</strong></p>
+            <pre><code>sessions_send: "Task 1: Email validation + password hashing.
+Use bcrypt, validate email format, min 8 chars."</code></pre>
+
+            <p><strong>6. Coder Implements (Thread)</strong></p>
+            <pre><code>[In thread under Verifier's message]
+Implemented email validation and bcrypt hashing.
+Code ready for review.</code></pre>
+
+            <p><strong>7. Verifier Reviews</strong></p>
+            <pre><code>⚠️ Missing: password strength validation.
+Add: 1 uppercase, 1 number required.</code></pre>
+
+            <p><strong>8. Coder Fixes (Thread)</strong></p>
+            <pre><code>Fixed. Added password strength rules.
+Ready for re-review.</code></pre>
+
+            <p><strong>9. Verifier Approves → Manager</strong></p>
+            <pre><code>sessions_send: "Login feature complete. Email validation,
+bcrypt hashing, password strength rules. All reviewed."</code></pre>
+
+            <p><strong>10. Manager Delivers (Main Channel)</strong></p>
+            <pre><code>✅ Login feature complete! Features:
+- Email + password authentication
+- Password hashing with bcrypt
+- Session token management
+Ready for testing!</code></pre>
+
+            <h2>Coder's Thread-Only Constraint</h2>
+            <h3>The Challenge</h3>
+            <p>Discord config doesn't support native "thread-only" posting for specific agents. We needed the Coder to <strong>never post in the main channel</strong>, only in threads.</p>
+
+            <h3>Solution: Defense in Depth</h3>
+            <p><strong>1. Tool Restrictions (Technical Enforcement)</strong></p>
+            <pre><code>{
+  "agents": {
+    "list": [
+      {
+        "id": "coder",
+        "tools": {
+          "deny": ["message"],
+          "allow": ["group:sessions", "group:fs", "group:runtime"]
+        }
+      }
+    ]
+  }
+}</code></pre>
+            <p>The <code>message</code> tool is denied, so Coder <strong>cannot</strong> post directly to Discord channels.</p>
+
+            <p><strong>2. Personality Instructions (Behavioral)</strong></p>
+            <pre><code>## Communication Rules (CRITICAL!)
+- ❌ NEVER post in main Discord channel - Thread ONLY!
+- ✅ Threads only - When replying to Verifier's messages
+- ✅ Talk to: Verifier only (via sessions_send)
+- ❌ Don't talk to: Henry or Manager directly</code></pre>
+
+            <p><strong>3. Workflow Prompts (Structural)</strong></p>
+            <p>Each agent has a <code>prompt.md</code> file encoding the workflow logic:</p>
+            <ul>
+                <li>When to use <code>sessions_send</code></li>
+                <li>Who to talk to</li>
+                <li>What tools to use</li>
+                <li>When to use <code>REPLY_SKIP</code></li>
+            </ul>
+
+            <h2>Testing Results</h2>
+            <h3>Identity Verification ✅</h3>
+            <p>Tested each agent with "Who are you?":</p>
+
+            <p><strong>Manager:</strong></p>
+            <blockquote>"I'm the AI Team Manager! 👋 I validate requirements, coordinate between Henry/Verifier/Coder, and make sure work flows smoothly."</blockquote>
+
+            <p><strong>Verifier:</strong></p>
+            <blockquote>"I'm the AI Team Verifier! 🔍 I'm the QA specialist - I review code, track issues, and make sure everything gets built right."</blockquote>
+
+            <p><strong>Coder:</strong></p>
+            <blockquote>"I'm the AI Team Coder 💻 I write code, build features, fix bugs, and implement things you need."</blockquote>
+
+            <p>All agents correctly identified their roles! ✅</p>
+
+            <h2>Lessons Learned</h2>
+            <h3>1. Agent Isolation is Key</h3>
+            <p>Each agent needs:</p>
+            <ul>
+                <li>Isolated workspace (no file access conflicts)</li>
+                <li>Isolated session store (no conversation bleeding)</li>
+                <li>Isolated agentDir (no auth/profile sharing)</li>
+            </ul>
+
+            <h3>2. Tool Restrictions > Personality Instructions</h3>
+            <p>Don't rely on agents "following rules" - use technical enforcement:</p>
+            <ul>
+                <li>Deny <code>message</code> tool for Coder (can't post to main channel)</li>
+                <li>Allow only necessary tools per agent</li>
+                <li>Use <code>group:sessions</code> for internal communication</li>
+            </ul>
+
+            <h3>3. Ping-Pong is Automatic</h3>
+            <p>Once <code>sessions_send</code> is used, the ping-pong loop happens automatically:</p>
+            <ul>
+                <li>Configured via <code>session.agentToAgent.maxPingPongTurns</code></li>
+                <li>Stop early with <code>REPLY_SKIP</code></li>
+                <li>Announce step posts to channel (or <code>ANNOUNCE_SKIP</code>)</li>
+            </ul>
+
+            <h3>4. Workflow Logic Needs Prompts</h3>
+            <p>AGENTS.md defines personality, but <code>prompt.md</code> encodes the workflow:</p>
+            <ul>
+                <li>When to delegate</li>
+                <li>Who to talk to</li>
+                <li>What tools to use</li>
+                <li>When to stop</li>
+            </ul>
+
+            <h2>Conclusion</h2>
+            <p>The multi-agent setup is <strong>working</strong>! Key wins:</p>
+            <ul>
+                <li>✅ Specialized agents with clear roles</li>
+                <li>✅ Isolated workspaces + sessions</li>
+                <li>✅ Technical enforcement of communication rules</li>
+                <li>✅ Automatic ping-pong workflow</li>
+                <li>✅ Coder stays in threads (tested!)</li>
+            </ul>
+            <p>Next up: test with real coding tasks and measure the efficiency gains!</p>
+
+            <h2>Resources</h2>
+            <ul>
+                <li><a href="https://docs.openclaw.ai/concepts/multi-agent" target="_blank">OpenClaw Multi-Agent Docs</a></li>
+                <li><a href="https://docs.openclaw.ai/concepts/session-tool" target="_blank">Session Tools Documentation</a></li>
+                <li><a href="https://github.com/openclaw/openclaw" target="_blank">GitHub Repo</a></li>
+            </ul>
+        </div>
+
+        <div class="post-footer">
+            <p>Posted from my Raspberry Pi 5 🖥️</p>
+            <p>© 2026 Henry Jin (金宏霖)</p>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const btn = document.getElementById('theme-btn');
+            const isDark = html.getAttribute('data-theme') === 'dark';
+            html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            btn.textContent = isDark ? '🌙' : '☀️';
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        }
+
+        function loadTheme() {
+            const saved = localStorage.getItem('theme') || 'light';
+            const html = document.documentElement;
+            const btn = document.getElementById('theme-btn');
+            html.setAttribute('data-theme', saved);
+            btn.textContent = saved === 'dark' ? '☀️' : '🌙';
+        }
+
+        loadTheme();
+    </script>
+</body>
+</html>
