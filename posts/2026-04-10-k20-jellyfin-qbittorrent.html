@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K20 Server Media Stack: Jellyfin + qBittorrent Setup</title>
+    <link rel="stylesheet" href="/posts/style.css">
+    <style>
+        :root {
+            --bg: #fafafa;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --text-light: #666666;
+            --accent: #007aff;
+            --border: #e5e5e5;
+            --code-bg: #f5f5f5;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0a0a0a;
+            --card-bg: #1a1a1a;
+            --text: #ffffff;
+            --text-light: #a0a0a0;
+            --border: #333333;
+            --code-bg: #2a2a2a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .back-link:hover { text-decoration: underline; }
+
+        article h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .meta {
+            color: var(--text-light);
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        article h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 35px 0 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        article h3 {
+            font-size: 17px;
+            font-weight: 600;
+            margin: 25px 0 10px;
+        }
+
+        article p { margin-bottom: 15px; }
+
+        article ul, article ol {
+            margin: 15px 0 15px 25px;
+        }
+
+        article li { margin-bottom: 8px; }
+
+        pre {
+            background: var(--code-bg);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'SF Mono', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            margin: 15px 0;
+        }
+
+        code {
+            font-family: 'SF Mono', 'Monaco', monospace;
+            font-size: 0.9em;
+            background: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            color: var(--text-light);
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+
+    <div class="container">
+        <a href="/" class="back-link">← Back to Home</a>
+
+        <article>
+            <h1>K20 Server Media Stack: Jellyfin + qBittorrent Setup</h1>
+            <div class="meta">April 10, 2026 • 8 min read</div>
+
+            <h2>Overview</h2>
+            <p>
+                After converting my broken Lenovo K20 laptop into a headless Debian server, 
+                the next step was setting up a media stack. This post covers installing 
+                Jellyfin (media server) and qBittorrent (download client) with proper 
+                permission management.
+            </p>
+
+            <h2>Why K20?</h2>
+            <p>
+                The K20 server (Intel i3-5010U, 8GB RAM, 60GB SSD) is perfect for media serving:
+            </p>
+            <ul>
+                <li><strong>x86_64 architecture</strong> - Better software compatibility than ARM</li>
+                <li><strong>Hardware transcoding</strong> - Intel QuickSync support</li>
+                <li><strong>SSD storage</strong> - Fast library scanning and metadata operations</li>
+                <li><strong>Low power</strong> - ~15-25W idle, suitable for 24/7 operation</li>
+            </ul>
+
+            <h2>Installation Steps</h2>
+
+            <h3>1. System Preparation</h3>
+            <p>
+                Start with a fresh Debian 13 installation. Update packages and install prerequisites:
+            </p>
+            <pre><code>sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl gnupg apt-transport-https</code></pre>
+
+            <h3>2. Create Media User and Groups</h3>
+            <p>
+                Security best practice: run services under dedicated user accounts, not root.
+            </p>
+            <pre><code># Create media group
+sudo groupadd media
+
+# Create media user
+sudo useradd -r -g media -d /opt/media -s /usr/sbin/nologin media
+
+# Create media directories
+sudo mkdir -p /opt/media/{downloads,torrents,movies,tv,Music}
+sudo chown -R media:media /opt/media
+sudo chmod -R 755 /opt/media</code></pre>
+
+            <h3>3. Install Jellyfin</h3>
+            <pre><code># Add Jellyfin repository
+curl -fsSL https://repo.jellyfin.org/debian/jellyfin_team.gpg.key | \
+  sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/jellyfin.gpg
+
+echo "deb [arch=$(dpkg --print-architecture)] \
+  https://repo.jellyfin.org/debian $(lsb_release -cs) main" | \
+  sudo tee /etc/apt/sources.list.d/jellyfin.list
+
+# Install Jellyfin
+sudo apt update
+sudo apt install -y jellyfin
+
+# Enable and start service
+sudo systemctl enable jellyfin
+sudo systemctl start jellyfin</code></pre>
+
+            <h3>4. Install qBittorrent</h3>
+            <pre><code># Add qBittorrent PPA (or use official repo)
+sudo add-apt-repository ppa:qbittorrent-team/qbittorrent-stable
+sudo apt update
+sudo apt install -y qbittorrent-nox
+
+# Create systemd service for qBittorrent
+sudo nano /etc/systemd/system/qbittorrent.service</code></pre>
+
+            <p>Service file content:</p>
+            <pre><code>[Unit]
+Description=qBittorrent Daemon Service
+After=network.target
+
+[Service]
+Type=forking
+User=media
+Group=media
+UMask=002
+ExecStart=/usr/bin/qbittorrent-nox -d --confdir=/opt/media/.config/qBittorrent
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+
+            <pre><code># Enable and start
+sudo systemctl daemon-reload
+sudo systemctl enable qbittorrent
+sudo systemctl start qbittorrent</code></pre>
+
+            <h2>Permission Configuration</h2>
+            <p>
+                The key to a smooth media stack is proper permissions. Both services need 
+                access to the same media directories.
+            </p>
+
+            <h3>Directory Structure</h3>
+            <pre><code>/opt/media/
+├── downloads/        # qBittorrent download location
+│   ├── torrents/     # Completed downloads
+│   └── incomplete/   # In-progress downloads
+├── movies/           # Jellyfin library
+├── tv/               # Jellyfin library
+└── Music/            # Jellyfin library</code></pre>
+
+            <h3>UMask Configuration</h3>
+            <p>
+                Set umask to <code>002</code> so files created by qBittorrent are readable 
+                by Jellyfin (same group).
+            </p>
+            <pre><code># Edit /etc/profile or ~/.bashrc
+umask 002
+
+# Or set in systemd service (as shown above)</code></pre>
+
+            <h2>Network Configuration</h2>
+            <p>
+                Both services run on the local network. Access via:
+            </p>
+            <ul>
+                <li><strong>Jellyfin:</strong> <code>http://&lt;server-ip&gt;:8096</code></li>
+                <li><strong>qBittorrent WebUI:</strong> <code>http://&lt;server-ip&gt;:8080</code></li>
+            </ul>
+
+            <p>
+                <strong>Security note:</strong> These services are only accessible from the 
+                local network. For remote access, use a VPN or reverse proxy with authentication.
+            </p>
+
+            <h2>Performance Tuning</h2>
+
+            <h3>Jellyfin Hardware Transcoding</h3>
+            <p>Enable Intel QuickSync for hardware-accelerated transcoding:</p>
+            <pre><code># Install Intel media drivers
+sudo apt install -y intel-media-va-driver-non-free libmfx1
+
+# Add media user to render group
+sudo usermod -aG render media
+
+# In Jellyfin Dashboard → Playback → enable Hardware Acceleration</code></pre>
+
+            <h3>qBittorrent Connection Limits</h3>
+            <p>Adjust connection limits based on your network:</p>
+            <ul>
+                <li>Global max connections: 500</li>
+                <li>Max connections per torrent: 50</li>
+                <li>Upload slots: 20</li>
+            </ul>
+
+            <h2>Monitoring</h2>
+            <p>Check service status:</p>
+            <pre><code>sudo systemctl status jellyfin
+sudo systemctl status qbittorrent
+
+# View logs
+journalctl -u jellyfin -f
+journalctl -u qbittorrent -f</code></pre>
+
+            <h2>Lessons Learned</h2>
+            <ul>
+                <li>
+                    <strong>Permission issues are the #1 problem</strong> - Spend time getting 
+                    this right from the start.
+                </li>
+                <li>
+                    <strong>Don't run as root</strong> - Dedicated service users prevent 
+                    security issues and file permission conflicts.
+                </li>
+                <li>
+                    <strong>SSD makes a difference</strong> - Library scanning and metadata 
+                    operations are noticeably faster than on HDD.
+                </li>
+                <li>
+                    <strong>Hardware transcoding works well</strong> - The K20's Intel HD 
+                    Graphics 5500 handles 1080p transcoding without breaking a sweat.
+                </li>
+            </ul>
+
+            <h2>Next Steps</h2>
+            <ul>
+                <li>Add automated download monitoring (Sonarr/Radarr)</li>
+                <li>Configure remote access via VPN</li>
+                <li>Set up automated backups</li>
+                <li>Integrate with existing NAS for additional storage</li>
+            </ul>
+
+            <div class="footer">
+                <p>© 2026 Henry Jin • Part of the Mini Homelab Series</p>
+            </div>
+        </article>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Distributed Mini Homelab: Architecture Overview</title>
+    <link rel="stylesheet" href="/posts/style.css">
+    <style>
+        :root {
+            --bg: #fafafa;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --text-light: #666666;
+            --accent: #007aff;
+            --border: #e5e5e5;
+            --code-bg: #f5f5f5;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0a0a0a;
+            --card-bg: #1a1a1a;
+            --text: #ffffff;
+            --text-light: #a0a0a0;
+            --border: #333333;
+            --code-bg: #2a2a2a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .back-link:hover { text-decoration: underline; }
+
+        article h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .meta {
+            color: var(--text-light);
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        article h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 35px 0 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        article h3 {
+            font-size: 17px;
+            font-weight: 600;
+            margin: 25px 0 10px;
+        }
+
+        article p { margin-bottom: 15px; }
+
+        article ul, article ol {
+            margin: 15px 0 15px 25px;
+        }
+
+        article li { margin-bottom: 8px; }
+
+        pre {
+            background: var(--code-bg);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'SF Mono', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            margin: 15px 0;
+        }
+
+        code {
+            font-family: 'SF Mono', 'Monaco', monospace;
+            font-size: 0.9em;
+            background: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .diagram {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            color: var(--text-light);
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+
+    <div class="container">
+        <a href="/" class="back-link">← Back to Home</a>
+
+        <article>
+            <h1>My Distributed Mini Homelab: Architecture Overview</h1>
+            <div class="meta">April 10, 2026 • 12 min read</div>
+
+            <h2>Introduction</h2>
+            <p>
+                This post documents my current home lab setup—a distributed system built 
+                from repurposed hardware, running entirely on my local network. No cloud 
+                dependencies, no subscriptions, full control.
+            </p>
+
+            <h2>Hardware Inventory</h2>
+
+            <h3>Primary Server: Raspberry Pi 5</h3>
+            <ul>
+                <li><strong>CPU:</strong> Broadcom BCM2712 (Quad-core Cortex-A76)</li>
+                <li><strong>RAM:</strong> 8GB LPDDR4X</li>
+                <li><strong>Storage:</strong> 128GB NVMe SSD (via PCIe HAT)</li>
+                <li><strong>Power:</strong> ~5-12W idle</li>
+                <li><strong>Role:</strong> Main application server, OpenClaw host</li>
+            </ul>
+
+            <h3>Secondary Server: Lenovo K20</h3>
+            <ul>
+                <li><strong>CPU:</strong> Intel Core i3-5010U @ 2.1GHz (2C/4T)</li>
+                <li><strong>RAM:</strong> 8GB DDR3</li>
+                <li><strong>Storage:</strong> 60GB SSD</li>
+                <li><strong>Power:</strong> ~15-25W idle</li>
+                <li><strong>Role:</strong> Media server (Jellyfin + qBittorrent)</li>
+                <li><strong>Origin:</strong> Broken laptop (cracked screen) → headless server</li>
+            </ul>
+
+            <h3>Network Infrastructure</h3>
+            <ul>
+                <li><strong>Main Router:</strong> ChinaNet (ISP provided)</li>
+                <li><strong>Secondary Router:</strong> Redmi Router (room router)</li>
+                <li><strong>Proxy Gateway:</strong> Phicomm N1 (OpenWrt + Clash)</li>
+                <li><strong>Network Monitoring:</strong> Uptime Kuma, custom scripts</li>
+            </ul>
+
+            <h2>Network Topology</h2>
+
+            <div class="diagram">
+```
+                    Internet
+                        │
+                        ▼
+                ┌───────────────┐
+                │  ChinaNet     │ 192.168.1.1
+                │  (Main Router)│
+                └───────┬───────┘
+                        │
+                        ▼
+                ┌───────────────┐
+                │  Redmi Router │ 192.168.51.1
+                │  (Room Router)│
+                └───────┬───────┘
+                        │
+        ┌───────────────┼───────────────┐
+        │               │               │
+        ▼               ▼               ▼
+   ┌─────────┐   ┌───────────┐   ┌───────────┐
+   │  Pi5    │   │   K20     │   │   N1      │
+   │192.168. │   │192.168.   │   │192.168.   │
+   │ 51.x    │   │ 51.63     │   │ 51.2      │
+   │         │   │           │   │           │
+   │OpenClaw │   │ Jellyfin  │   │ OpenWrt   │
+   │Services │   │ qBittorrent│  │ +Clash    │
+   └─────────┘   └───────────┘   └───────────┘
+```
+            </div>
+
+            <h2>Service Distribution</h2>
+
+            <h3>Raspberry Pi 5 Services</h3>
+            <ul>
+                <li><strong>OpenClaw Gateway</strong> - AI assistant backend (port 8080)</li>
+                <li><strong>Control Center UI</strong> - Dashboard (port 3456)</li>
+                <li><strong>ClawLibrary</strong> - Web interface (port 5173)</li>
+                <li><strong>Proxy Monitor</strong> - Auto-failover script (every 2 min)</li>
+                <li><strong>Gateway Self-Heal</strong> - Auto-recovery system</li>
+                <li><strong>Browser Automation</strong> - Chromium for web tasks</li>
+            </ul>
+
+            <h3>K20 Server Services</h3>
+            <ul>
+                <li><strong>Jellyfin</strong> - Media server (port 8096)</li>
+                <li><strong>qBittorrent</strong> - Download client (port 8080)</li>
+                <li><strong>Debian 13</strong> - Base OS (headless)</li>
+            </ul>
+
+            <h3>N1 (Phicomm) Services</h3>
+            <ul>
+                <li><strong>OpenWrt</strong> - Custom firmware</li>
+                <li><strong>OpenClash</strong> - Proxy management</li>
+                <li><strong>Clash Dashboard</strong> - Web UI (port 9090)</li>
+            </ul>
+
+            <h2>Key Design Decisions</h2>
+
+            <h3>1. Distributed Architecture</h3>
+            <p>
+                Instead of putting everything on one machine, I split services based on 
+                hardware strengths:
+            </p>
+            <ul>
+                <li><strong>Pi5:</strong> Low-power, always-on application server</li>
+                <li><strong>K20:</strong> x86_64 compatibility for media transcoding</li>
+                <li><strong>N1:</strong> Dedicated network gateway (isolated from services)</li>
+            </ul>
+
+            <h3>2. No Single Point of Failure</h3>
+            <p>
+                If one server goes down, others continue operating:
+            </p>
+            <ul>
+                <li>Pi5 down → Media still available on K20</li>
+                <li>K20 down → AI assistant still works on Pi5</li>
+                <li>N1 down → Local network still functional (direct router access)</li>
+            </ul>
+
+            <h3>3. Local-First, Cloud-Optional</h3>
+            <p>
+                All core services run locally. Cloud is only used for:
+            </p>
+            <ul>
+                <li>External access (via VPN, not port forwarding)</li>
+                <li>Software updates</li>
+                <li>Backup storage (encrypted)</li>
+            </ul>
+
+            <h3>4. Automation Over Manual Management</h3>
+            <p>
+                Self-healing systems reduce maintenance burden:
+            </p>
+            <ul>
+                <li>Proxy auto-failover (every 2 minutes)</li>
+                <li>Gateway auto-recovery (detects and fixes common errors)</li>
+                <li>Browser cleanup (kills stuck processes)</li>
+                <li>Health monitoring with auto-restart</li>
+            </ul>
+
+            <h2>Monitoring Stack</h2>
+
+            <h3>Uptime Kuma</h3>
+            <ul>
+                <li><strong>Location:</strong> Pi5</li>
+                <li><strong>Access:</strong> http://192.168.51.74:3001</li>
+                <li><strong>Monitors:</strong> 10+ services across all servers</li>
+            </ul>
+
+            <h3>Custom Scripts</h3>
+            <ul>
+                <li><code>proxy-failover-env.sh</code> - Tests and switches proxies</li>
+                <li><code>openclaw-self-heal.sh</code> - Gateway recovery</li>
+                <li><code>cloudflared-health.sh</code> - Tunnel monitoring</li>
+                <li><code>browser-cleanup.sh</code> - Browser lifecycle management</li>
+            </ul>
+
+            <h3>Logging</h3>
+            <pre><code># Centralized log locations
+~/workspace/proxy-failover.log
+~/workspace/openclaw-self-heal.log
+~/workspace/cloudflared-health.log
+~/workspace/browser-cleanup.log
+~/workspace/heartbeat.log</code></pre>
+
+            <h2>Power Consumption</h2>
+            <p>Total idle power: ~25-40W</p>
+            <ul>
+                <li>Pi5: 5-12W</li>
+                <li>K20: 15-25W</li>
+                <li>N1: ~5W</li>
+                <li>Router: ~5W</li>
+            </ul>
+            <p>
+                Monthly electricity cost (at local rates): approximately ¥30-50/month 
+                for 24/7 operation.
+            </p>
+
+            <h2>Security Considerations</h2>
+
+            <h3>Network Isolation</h3>
+            <ul>
+                <li>All servers on separate subnet (192.168.51.0/24)</li>
+                <li>SSH restricted to local network only</li>
+                <li>No port forwarding to internal services</li>
+            </ul>
+
+            <h3>Access Control</h3>
+            <ul>
+                <li>SSH key-only authentication</li>
+                <li>Service-specific user accounts</li>
+                <li>Firewall rules (UFW) on each server</li>
+            </ul>
+
+            <h3>Regular Audits</h3>
+            <ul>
+                <li>Weekly security update checks</li>
+                <li>Monthly log reviews</li>
+                <li>Quarterly password rotations</li>
+            </ul>
+
+            <h2>Lessons Learned</h2>
+
+            <h3>What Worked Well</h3>
+            <ul>
+                <li>
+                    <strong>Repurposed hardware is cost-effective</strong> - The K20 
+                    laptop-to-server conversion saved ¥2000+ vs buying new.
+                </li>
+                <li>
+                    <strong>Distribution improves reliability</strong> - When one service 
+                    crashes, others keep running.
+                </li>
+                <li>
+                    <strong>Automation is essential</strong> - Self-healing scripts catch 
+                    issues before they become problems.
+                </li>
+                <li>
+                    <strong>Documentation matters</strong> - Writing these posts helped 
+                    me remember why I made certain decisions.
+                </li>
+            </ul>
+
+            <h3>What I'd Do Differently</h3>
+            <ul>
+                <li>
+                    <strong>Start with VLANs</strong> - Network segmentation should have 
+                    been day-one, not an afterthought.
+                </li>
+                <li>
+                    <strong>Centralized logging</strong> - Currently logs are scattered 
+                    across servers. A proper ELK stack would help.
+                </li>
+                <li>
+                    <strong>Containerize everything</strong> - Docker would make migrations 
+                    and backups easier.
+                </li>
+                <li>
+                    <strong>Better backup strategy</strong> - Currently ad-hoc. Need 
+                    automated, versioned, offsite backups.
+                </li>
+            </ul>
+
+            <h2>Future Plans</h2>
+            <ul>
+                <li>Add NAS storage for centralized file serving</li>
+                <li>Implement proper backup rotation (3-2-1 rule)</li>
+                <li>Set up Home Assistant for smart home integration</li>
+                <li>Experiment with Kubernetes (k3s) for service orchestration</li>
+                <li>Add solar power monitoring (eventually go off-grid)</li>
+            </ul>
+
+            <h2>Conclusion</h2>
+            <p>
+                This mini homelab has been a learning journey—part infrastructure, part 
+                experimentation, part practical utility. It's not perfect, but it's mine, 
+                and it works.
+            </p>
+            <p>
+                The best part? Everything here can be rebuilt from scratch with the 
+                knowledge documented in these posts. That's real ownership.
+            </p>
+
+            <div class="footer">
+                <p>© 2026 Henry Jin • Mini Homelab Series (Final Post)</p>
+            </div>
+        </article>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+        }
+
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+    </script>
+</body>
+</html>

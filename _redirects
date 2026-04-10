@@ -1,0 +1,6 @@
+# Cloudflare Pages Redirects
+# 管理后台单独部署（可选）
+# /admin/*    /admin/index.html   200
+
+# 404 页面
+/*    /404.html   404

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K20 Repair Report - Henry's Blog</title>
+    <style>
+        :root { --bg: #fafafa; --card-bg: #ffffff; --text: #1a1a1a; --text-light: #666666; --accent: #007aff; --border: #e5e5e5; --code-bg: #f5f5f5; }
+        [data-theme="dark"] { --bg: #0a0a0a; --card-bg: #1a1a1a; --text: #ffffff; --text-light: #a0a0a0; --border: #333333; --code-bg: #2a2a2a; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+        .nav { position: fixed; top: 0; left: 0; right: 0; background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 20px; z-index: 1000; display: flex; justify-content: space-between; align-items: center; }
+        .nav-brand { font-size: 18px; font-weight: 600; color: var(--text); text-decoration: none; }
+        .nav-links { display: flex; gap: 20px; align-items: center; }
+        .nav-link { color: var(--text-light); text-decoration: none; font-size: 14px; }
+        .nav-link:hover { color: var(--accent); }
+        .nav-link.active { color: var(--accent); font-weight: 500; }
+        .container { max-width: 900px; margin: 0 auto; padding: 80px 20px 40px; }
+        .post-header { margin-bottom: 40px; padding-bottom: 30px; border-bottom: 1px solid var(--border); }
+        .post-meta { display: flex; gap: 15px; font-size: 14px; color: var(--text-light); margin-bottom: 15px; flex-wrap: wrap; }
+        .post-tag { background: #e74c3c; color: white; padding: 3px 12px; border-radius: 10px; font-weight: 500; font-size: 12px; }
+        .post-title { font-size: 32px; font-weight: 700; line-height: 1.3; margin-bottom: 10px; }
+        .post-content { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 40px; margin-bottom: 30px; }
+        .post-content h2 { font-size: 24px; font-weight: 600; margin: 40px 0 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+        .post-content h3 { font-size: 20px; font-weight: 600; margin: 30px 0 15px; }
+        .post-content p { margin-bottom: 15px; }
+        .post-content ul, .post-content ol { margin: 15px 0 15px 25px; }
+        .post-content li { margin-bottom: 8px; }
+        .post-content code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-family: 'SF Mono', 'Monaco', 'Consolas', monospace; font-size: 13px; }
+        .post-content pre { background: var(--code-bg); padding: 20px; border-radius: 8px; overflow-x: auto; margin: 20px 0; }
+        .post-content pre code { background: none; padding: 0; }
+        .post-content table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .post-content th, .post-content td { border: 1px solid var(--border); padding: 12px; text-align: left; }
+        .post-content th { background: var(--code-bg); font-weight: 600; }
+        .post-content a { color: var(--accent); text-decoration: none; }
+        .post-content a:hover { text-decoration: underline; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: var(--accent); text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        .success { background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">Henry Jin</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/posts/" class="nav-link active">Posts</a>
+            <a href="/about.html" class="nav-link">About</a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <a href="/posts/" class="back-link">← Back to Posts</a>
+        
+        <header class="post-header">
+            <div class="post-meta">
+                <time>2026-04-01</time>
+                <span class="post-tag">#Repair</span>
+                <span class="post-tag">#Debian</span>
+                <span class="post-tag">#K20</span>
+                <span>15 min read</span>
+            </div>
+            <h1 class="post-title">🔧 Lenovo K20 Debian Installation - Repair Report</h1>
+        </header>
+        
+        <article class="post-content">
+            <div class="success">
+                <strong>✅ Repair Completed:</strong> 2026-04-01 20:50 CST | Hard drive safely ejected, ready to reinstall.
+            </div>
+
+            <h2>Problem Diagnosis</h2>
+            <h3>Initial Symptoms</h3>
+            <table>
+                <tr><th>Symptom</th><th>Status</th></tr>
+                <tr><td>Power LED</td><td>✅ Solid on</td></tr>
+                <tr><td>Fan</td><td>❌ Spins for 5s then stops</td></tr>
+                <tr><td>Network</td><td>⚠️ DHCP got IP but no services</td></tr>
+                <tr><td>SSH Port 22</td><td>❌ Closed</td></tr>
+                <tr><td>System Boot</td><td>❌ Failed</td></tr>
+            </table>
+
+            <h3>Root Cause</h3>
+            <p><strong>initramfs generation failed</strong> - During <code>debootstrap</code> + <code>qemu-user-static</code> installation, qemu emulation of x86_64 architecture caused library mapping issues:</p>
+            <pre><code>error while loading shared libraries: libcrypto.so.3: failed to map segment from shared object</code></pre>
+            <p>This resulted in:</p>
+            <ul>
+                <li>❌ systemd services unable to start</li>
+                <li>❌ SSH service not running</li>
+                <li>❌ Network manager not initializing</li>
+                <li>❌ System stuck in early boot stage</li>
+            </ul>
+
+            <h2>Repairs Performed</h2>
+            
+            <h3>1. Regenerated initramfs ✅</h3>
+            <pre><code># Generated on Pi5 host for K20 drive
+update-initramfs -c -k 6.1.0-42-amd64 -b /mnt/k20/boot
+
+# Result: 17MB initrd.img generated
+ls -lh /mnt/k20/boot/initrd.img-6.1.0-42-amd64
+# -rw-r--r-- 1 root root 17M ...</code></pre>
+
+            <h3>2. Fixed GRUB Boot Configuration ✅</h3>
+            <pre><code>set timeout=5
+menuentry "Debian GNU/Linux" {
+    set root=(hd0,gpt2)
+    linux /boot/vmlinuz-6.1.0-42-amd64 root=UUID=f874e2b1-ea2f-4e0a-8cb2-8a1e8878a972 ro quiet
+    initrd /boot/initrd.img-6.1.0-42-amd64
+}</code></pre>
+
+            <h3>3. Fixed EFI Boot Configuration ✅</h3>
+            <pre><code># /boot/efi/EFI/BOOT/grub.cfg
+set timeout=5
+search.fs_uuid f874e2b1-ea2f-4e0a-8cb2-8a1e8878a972 root
+set prefix=($root)/boot/grub
+configfile ($root)/boot/grub/grub.cfg</code></pre>
+
+            <h3>4. Fixed fstab ✅</h3>
+            <pre><code>/dev/disk/by-uuid/f874e2b1-ea2f-4e0a-8cb2-8a1e8878a972 / ext4 errors=remount-ro 0 1
+/dev/disk/by-uuid/E876-C8CD /boot/efi vfat umask=0077 0 1</code></pre>
+
+            <h3>5. Fixed SSH Configuration ✅</h3>
+            <pre><code>Port 22
+PermitRootLogin yes
+PasswordAuthentication yes
+PubkeyAuthentication yes</code></pre>
+
+            <h3>6. Configured Services to Auto-start ✅</h3>
+            <pre><code>systemctl enable ssh
+systemctl enable NetworkManager</code></pre>
+
+            <h3>7. Configured apt Sources (with firmware) ✅</h3>
+            <pre><code>deb http://mirrors.ustc.edu.cn/debian bookworm main contrib non-free non-free-firmware
+deb http://mirrors.ustc.edu.cn/debian bookworm-updates main contrib non-free non-free-firmware
+deb http://mirrors.ustc.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware</code></pre>
+
+            <h3>8. Created First-Boot Script ✅</h3>
+            <pre><code># /etc/rc.local
+# Auto-install WiFi firmware
+apt install -y firmware-realtek firmware-misc-nonfree
+# Regenerate initramfs
+update-initramfs -u</code></pre>
+
+            <h2>Before vs After</h2>
+            <table>
+                <tr><th>Item</th><th>Before</th><th>After</th></tr>
+                <tr><td>initramfs</td><td>❌ Failed to generate</td><td>✅ 17MB OK</td></tr>
+                <tr><td>GRUB config</td><td>⚠️ UUID mismatch possible</td><td>✅ Correct UUID</td></tr>
+                <tr><td>EFI boot</td><td>✅ Existed</td><td>✅ Config updated</td></tr>
+                <tr><td>SSH service</td><td>❌ Couldn't start</td><td>✅ Configured auto-start</td></tr>
+                <tr><td>Network service</td><td>❌ Couldn't start</td><td>✅ Configured auto-start</td></tr>
+                <tr><td>WiFi firmware</td><td>❌ Not installed</td><td>⚠️ Auto-install on first boot</td></tr>
+                <tr><td>System boot</td><td>❌ Fan stops after 5s</td><td>✅ Expected normal</td></tr>
+            </table>
+
+            <h2>Expected Boot Sequence</h2>
+            <ol>
+                <li>Press power button</li>
+                <li>BIOS POST (~5s)</li>
+                <li>GRUB load (~3s)</li>
+                <li>Debian kernel boot (~10s)</li>
+                <li>initramfs load (~5s)</li>
+                <li>systemd init (~20s)</li>
+                <li>Network manager start (~10s)</li>
+                <li>SSH service start ✅</li>
+                <li>First-boot script runs (firmware install, ~30s)</li>
+                <li>System ready ✅</li>
+            </ol>
+            <p><strong>Total boot time:</strong> ~1.5-2 minutes (first boot may take 3 minutes)</p>
+
+            <h2>Connection Info</h2>
+            <h3>Wired Network (Recommended for first use)</h3>
+            <pre><code>Connection: Ethernet cable to router
+IP: DHCP auto
+SSH Port: 22
+Username: root
+Password: k20root</code></pre>
+
+            <h3>WiFi (After first boot)</h3>
+            <pre><code>SSID: 私用以太之光_5G
+Password: 65482908
+Auto-connect: Yes</code></pre>
+
+            <div class="success">
+                <strong>✅ Repair Complete!</strong><br>
+                Hard drive safely ejected. Ready to reinstall in K20.<br>
+                Expected: Normal boot on next startup 🎉
+            </div>
+        </article>
+    </div>
+
+    <script>
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+        function applyTheme(dark) { document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light'); }
+        applyTheme(prefersDark.matches);
+        prefersDark.addEventListener('change', e => applyTheme(e.matches));
+    </script>
+</body>
+</html>
