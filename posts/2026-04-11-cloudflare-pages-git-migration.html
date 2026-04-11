@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Blog Migration to Cloudflare Pages with Git Auto-Deploy</title>
+    <style>
+        :root {
+            --bg: #fafafa;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --text-light: #666666;
+            --accent: #007aff;
+            --border: #e5e5e5;
+            --code-bg: #f5f5f5;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0a0a0a;
+            --card-bg: #1a1a1a;
+            --text: #ffffff;
+            --text-light: #a0a0a0;
+            --border: #333333;
+            --code-bg: #2d2d2d;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 80px 20px 40px;
+        }
+
+        /* Header */
+        .post-header {
+            margin-bottom: 40px;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            color: var(--text-light);
+            margin-bottom: 15px;
+        }
+
+        .post-tag {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        h1 {
+            font-size: 28px;
+            line-height: 1.3;
+            margin-bottom: 10px;
+        }
+
+        /* Content */
+        .post-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-size: 22px;
+            margin: 30px 0 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        h3 {
+            font-size: 18px;
+            margin: 25px 0 12px;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        code {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            background: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            border: 1px solid var(--border);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        [data-theme="dark"] .warning {
+            background: #3d341b;
+            border-left-color: #f39c12;
+        }
+
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        [data-theme="dark"] .success {
+            background: #1b3a24;
+            border-left-color: #27ae60;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid var(--border);
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        th {
+            background: var(--code-bg);
+            font-weight: 600;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 20px;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover { color: var(--accent); }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover { transform: scale(1.05); }
+        .btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Footer */
+        .post-footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            color: var(--text-light);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <a href="/" class="nav-brand">Henry's Blog</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/posts/" class="nav-link">Blog</a>
+            <a href="/about.html" class="nav-link">About</a>
+        </div>
+        <div class="controls">
+            <button class="btn" id="theme-toggle" title="Toggle dark mode">🌙</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Post Header -->
+        <header class="post-header">
+            <div class="post-meta">
+                <span class="post-tag" style="background:#3498db;color:white;">Cloudflare</span>
+                <span class="post-tag" style="background:#3498db;color:white;">Git</span>
+                <span class="post-tag" style="background:#3498db;color:white;">DevOps</span>
+                <time>2026-04-11</time>
+                <span>15 min read</span>
+            </div>
+            <h1>🚀 Blog Migration to Cloudflare Pages with Git Auto-Deploy</h1>
+            <p style="color: var(--text-light); font-size: 16px;">
+                How I migrated my static blog from Cloudflare Tunnel to Cloudflare Pages, 
+                set up Git auto-deploy, and solved SSH proxy issues along the way.
+            </p>
+        </header>
+
+        <!-- Post Content -->
+        <article class="post-content">
+            <h2 id="background">📋 Background</h2>
+            <p>
+                My blog was previously hosted on a Raspberry Pi 5 with Cloudflare Tunnel for HTTPS. 
+                While this worked, it had several issues:
+            </p>
+            <ul>
+                <li><strong>GFW interference:</strong> Cloudflare Tunnel kept timing out due to GFW blocking edge nodes</li>
+                <li><strong>530 errors:</strong> Website would randomly return 530 errors when tunnel disconnected</li>
+                <li><strong>Manual deployment:</strong> Had to manually upload files via script</li>
+                <li><strong>Resource usage:</strong> Tunnel consumed Pi5 resources unnecessarily</li>
+            </ul>
+
+            <div class="warning">
+                <strong>⚠️ The Problem:</strong> Cloudflare Tunnel requires a persistent connection to Cloudflare edge nodes, 
+                which are frequently blocked or throttled by GFW in China. This caused frequent disconnections and 530 errors.
+            </div>
+
+            <h2 id="solution">✅ Solution: Cloudflare Pages</h2>
+            <p>
+                Cloudflare Pages hosts static sites directly on Cloudflare's CDN, eliminating the need for a tunnel. 
+                Combined with Git auto-deploy, it provides:
+            </p>
+            <ul>
+                <li>✅ <strong>No tunnel needed</strong> - Direct CDN hosting</li>
+                <li>✅ <strong>Auto-deploy on git push</strong> - No manual uploads</li>
+                <li>✅ <strong>Better performance</strong> - Global CDN edge caching</li>
+                <li>✅ <strong>Free HTTPS</strong> - Automatic SSL certificates</li>
+                <li>✅ <strong>Bypasses GFW</strong> - Cloudflare CDN is more reliable than Tunnel</li>
+            </ul>
+
+            <h2 id="migration-steps">🔧 Migration Steps</h2>
+
+            <h3>1. Prepare Git Repository</h3>
+            <p>First, I needed to push my website to GitHub. But there was a problem:</p>
+            <div class="warning">
+                <strong>⚠️ SSH Connection Issue:</strong> SSH to GitHub was timing out because GFW blocks direct SSH connections.
+            </div>
+
+            <p><strong>Initial attempt (failed):</strong></p>
+            <pre><code># SSH connection kept timing out
+ssh -T git@github.com
+# Connection timed out</code></pre>
+
+            <p><strong>Solution: Use HTTPS instead of SSH</strong></p>
+            <pre><code># Configure Git to use HTTPS
+git config --global url."https://github.com/".insteadOf git@github.com:
+
+# Generate GitHub Personal Access Token
+# Go to: https://github.com/settings/tokens
+# Create fine-grained token with: Repository permissions → Contents → Read and write
+
+# Cache credentials (one-time setup)
+git config --global credential.helper store
+echo "https://USERNAME:TOKEN@github.com" > ~/.git-credentials
+chmod 600 ~/.git-credentials</code></pre>
+
+            <div class="warning">
+                <strong>🔐 Security Note:</strong> Never share your GitHub token! I'm using a fine-grained token 
+                with 30-day expiry and only <code>repo</code> scope for this specific repository.
+            </div>
+
+            <p><strong>Test connection:</strong></p>
+            <pre><code>cd /home/henry/website
+git remote add origin https://github.com/henryjin8s/henryjin8s-blog.git
+git push -u origin main</code></pre>
+
+            <h3>2. Create Cloudflare Pages Project</h3>
+            <p><strong>⚠️ Important:</strong> Make sure to create a <strong>Pages</strong> project (◇ diamond icon), 
+            NOT a Worker (⚡ lightning icon). I initially created the wrong type and wasted time debugging!</p>
+
+            <ol>
+                <li>Go to <a href="https://dash.cloudflare.com" target="_blank">Cloudflare Dashboard</a></li>
+                <li>Workers & Pages → Create Application</li>
+                <li>Select <strong>Pages</strong> (diamond icon ◇)</li>
+                <li>Connect to Git → Select <code>henryjin8s/henryjin8s-blog</code></li>
+                <li>Configure:
+                    <ul>
+                        <li><strong>Production branch:</strong> <code>main</code></li>
+                        <li><strong>Build command:</strong> (leave empty - static site)</li>
+                        <li><strong>Deploy command:</strong> <code>true</code> (required field)</li>
+                        <li><strong>Root directory:</strong> <code>/</code></li>
+                    </ul>
+                </li>
+                <li>Save and Deploy</li>
+            </ol>
+
+            <h3>3. Configure Custom Domain</h3>
+            <p>After the initial deployment:</p>
+            <ol>
+                <li>Go to Pages project → Custom domains</li>
+                <li>Add <code>henryjin8s.xyz</code></li>
+                <li>Cloudflare will show DNS configuration:</li>
+            </ol>
+
+            <pre><code>Type:   CNAME
+Name:   @
+Target: henryjin8s-blog.pages.dev
+Proxy:  Enabled (orange cloud) ☁️</code></pre>
+
+            <p><strong>⚠️ DNS Propagation:</strong> Changes may take 5-30 minutes to propagate.</p>
+
+            <h3>4. Test Git Auto-Deploy</h3>
+            <p>Now the fun part - test if pushing to Git triggers automatic deployment:</p>
+
+            <pre><code># Make a change
+cd /home/henry/website
+git add .
+git commit -m "Update homepage with new posts"
+git push
+
+# Watch Cloudflare Dashboard → Deployments
+# Should see: "Production deployment" → "Success" in ~1-2 minutes</code></pre>
+
+            <div class="success">
+                <strong>✅ Success!</strong> After pushing, Cloudflare automatically:
+                <ol>
+                    <li>Detects the new commit via webhook</li>
+                    <li>Pulls the latest code from GitHub</li>
+                    <li>Deploys to global CDN</li>
+                    <li>Invalidates cache</li>
+                </ol>
+            </div>
+
+            <h2 id="troubleshooting">🔍 Troubleshooting</h2>
+
+            <h3>Problem 1: Wrong Project Type</h3>
+            <p><strong>Symptom:</strong> Deployments page shows "Worker" instead of "Pages", no Git auto-deploy option.</p>
+            <p><strong>Solution:</strong> Delete the project and create a new one with the correct type (Pages, not Worker).</p>
+
+            <h3>Problem 2: Git Push Permission Denied</h3>
+            <p><strong>Symptom:</strong> <code>fatal: unable to access: The requested URL returned error: 403</code></p>
+            <p><strong>Solution:</strong> GitHub token doesn't have write permissions. Update token scopes:</p>
+            <pre><code># Fine-grained token needs:
+# Repository permissions → Contents → Read and write</code></pre>
+
+            <h3>Problem 3: Old Content Still Showing</h3>
+            <p><strong>Symptom:</strong> Website shows old content after deployment.</p>
+            <p><strong>Solution:</strong> Cloudflare cache might be stale. Purge cache:</p>
+            <pre><code># Cloudflare Dashboard → Caching → Configuration → Purge Everything
+# Or wait 5-10 minutes for automatic refresh</code></pre>
+
+            <h2 id="comparison">📊 Before vs After</h2>
+
+            <table>
+                <tr>
+                    <th>Aspect</th>
+                    <th>Before (Tunnel)</th>
+                    <th>After (Pages)</th>
+                </tr>
+                <tr>
+                    <td><strong>Deployment</strong></td>
+                    <td>Manual script</td>
+                    <td>Git push (auto)</td>
+                </tr>
+                <tr>
+                    <td><strong>Uptime</strong></td>
+                    <td>~90% (tunnel drops)</td>
+                    <td>~99.9% (CDN)</td>
+                </tr>
+                <tr>
+                    <td><strong>Performance</strong></td>
+                    <td>Single server (Pi5)</td>
+                    <td>Global CDN</td>
+                </tr>
+                <tr>
+                    <td><strong>Resource Usage</strong></td>
+                    <td>Pi5 CPU + bandwidth</td>
+                    <td>Zero (offloaded)</td>
+                </tr>
+                <tr>
+                    <td><strong>GFW Resilience</strong></td>
+                    <td>❌ Frequent blocks</td>
+                    <td>✅ Much better</td>
+                </tr>
+            </table>
+
+            <h2 id="security">🔐 Security Considerations</h2>
+
+            <h3>GitHub Token Security</h3>
+            <ul>
+                <li><strong>Use fine-grained tokens</strong> instead of classic tokens</li>
+                <li><strong>Set expiration</strong> (I used 30 days)</li>
+                <li><strong>Limit scope</strong> to only required repositories</li>
+                <li><strong>Never commit tokens</strong> to Git (use <code>~/.git-credentials</code>)</li>
+                <li><strong>Rotate regularly</strong> and delete old tokens</li>
+            </ul>
+
+            <h3>What I Did</h3>
+            <pre><code># Token stored locally (not in Git)
+~/.git-credentials (chmod 600)
+
+# Token configuration:
+- Type: Fine-grained
+- Expiration: 30 days
+- Repository: henryjin8s-blog only
+- Permissions: Contents (Read and write)</code></pre>
+
+            <h2 id="workflow">🔄 Current Workflow</h2>
+            <p>Now my blog update workflow is simple:</p>
+
+            <pre><code># 1. Edit content locally
+cd /home/henry/website
+vim posts/new-post.html
+
+# 2. Commit and push
+git add .
+git commit -m "Add new blog post"
+git push
+
+# 3. Wait ~1-2 minutes
+# Cloudflare automatically deploys
+
+# 4. Visit https://henryjin8s.xyz
+# New content is live!</code></pre>
+
+            <h2 id="lessons">💡 Lessons Learned</h2>
+
+            <ol>
+                <li><strong>Pages ≠ Worker:</strong> They look similar but are completely different. Pages is for static sites, Worker is for serverless functions.</li>
+                <li><strong>HTTPS > SSH in China:</strong> SSH connections to GitHub are frequently blocked. HTTPS with token works reliably.</li>
+                <li><strong>Fine-grained tokens:</strong> More secure than classic tokens. Can limit to specific repos and set expiration.</li>
+                <li><strong>Cloudflare CDN > Tunnel:</strong> For static sites in China, direct CDN hosting is more reliable than Tunnel.</li>
+                <li><strong>Test before migrating domain:</strong> Test on <code>.pages.dev</code> subdomain first, then switch custom domain.</li>
+            </ol>
+
+            <h2 id="conclusion">✅ Conclusion</h2>
+            <p>
+                The migration from Cloudflare Tunnel to Cloudflare Pages was a huge improvement. 
+                The site is now more reliable, faster, and requires zero maintenance. 
+                Git auto-deploy means I can focus on writing content instead of managing infrastructure.
+            </p>
+
+            <p><strong>Total migration time:</strong> ~2 hours (including debugging the Worker vs Pages confusion)</p>
+            <p><strong>Cost:</strong> Free (Cloudflare Pages free tier)</p>
+            <p><strong>Next steps:</strong> Maybe add a CMS for non-technical content updates? 🤔</p>
+        </article>
+
+        <!-- Post Footer -->
+        <footer class="post-footer">
+            <p>
+                <strong>Related Posts:</strong><br>
+                <a href="/posts/2026-04-10-mini-homelab-architecture.html">🏠 My Distributed Mini Homelab: Architecture Overview</a><br>
+                <a href="/posts/2026-03-03-cloudflare-tunnel-proxy-fix.html">🔧 Cloudflare Tunnel: Why It Needs Proxy (And Why It Doesn't)</a>
+            </p>
+            <p style="margin-top: 20px;">
+                <em>Published: 2026-04-11 | Updated: 2026-04-11</em>
+            </p>
+        </footer>
+    </div>
+
+    <!-- Theme Toggle Script -->
+    <script>
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+
+        // Check saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            html.setAttribute('data-theme', 'dark');
+            themeToggle.textContent = '☀️';
+            themeToggle.classList.add('active');
+        }
+
+        themeToggle.addEventListener('click', () => {
+            if (html.getAttribute('data-theme') === 'dark') {
+                html.removeAttribute('data-theme');
+                themeToggle.textContent = '🌙';
+                themeToggle.classList.remove('active');
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                themeToggle.textContent = '☀️';
+                themeToggle.classList.add('active');
+                localStorage.setItem('theme', 'dark');
+            }
+        });
+    </script>
+</body>
+</html>
