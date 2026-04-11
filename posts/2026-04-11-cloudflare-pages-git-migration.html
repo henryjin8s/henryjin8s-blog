@@ -334,8 +334,12 @@ git remote add origin https://github.com/henryjin8s/henryjin8s-blog.git
 git push -u origin main</code></pre>
 
             <h3>2. Create Cloudflare Pages Project</h3>
-            <p><strong>⚠️ Important:</strong> Make sure to create a <strong>Pages</strong> project (◇ diamond icon), 
-            NOT a Worker (⚡ lightning icon). I initially created the wrong type and wasted time debugging!</p>
+            <div class="warning">
+                <strong>⚠️ 2026 Update:</strong> Cloudflare has merged Pages into Workers platform. 
+                In the new UI, you'll see the Workers icon (⚡ lightning) for both. 
+                The key difference is selecting "Pages" vs "Worker" during creation.
+            </div>
+            <p><strong>Steps:</strong></p>
 
             <ol>
                 <li>Go to <a href="https://dash.cloudflare.com" target="_blank">Cloudflare Dashboard</a></li>
@@ -392,9 +396,15 @@ git push
 
             <h2 id="troubleshooting">🔍 Troubleshooting</h2>
 
-            <h3>Problem 1: Wrong Project Type</h3>
-            <p><strong>Symptom:</strong> Deployments page shows "Worker" instead of "Pages", no Git auto-deploy option.</p>
-            <p><strong>Solution:</strong> Delete the project and create a new one with the correct type (Pages, not Worker).</p>
+            <h3>Problem 1: Confused by UI Changes (2026)</h3>
+            <p><strong>Symptom:</strong> Not sure if creating Pages or Worker - both show lightning icon (⚡).</p>
+            <p><strong>Solution:</strong> Cloudflare merged Pages into Workers platform in 2025. Look for:
+                <ul>
+                    <li><strong>For static sites:</strong> Select "Pages" during project creation (even with lightning icon)</li>
+                    <li><strong>For serverless functions:</strong> Select "Worker"</li>
+                    <li><strong>Hint:</strong> If you see "Connect to Git" option, you're in the right place for Pages</li>
+                </ul>
+            </p>
 
             <h3>Problem 2: Git Push Permission Denied</h3>
             <p><strong>Symptom:</strong> <code>fatal: unable to access: The requested URL returned error: 403</code></p>
@@ -485,7 +495,7 @@ git push
             <h2 id="lessons">💡 Lessons Learned</h2>
 
             <ol>
-                <li><strong>Pages ≠ Worker:</strong> They look similar but are completely different. Pages is for static sites, Worker is for serverless functions.</li>
+                <li><strong>UI Update (2026):</strong> Cloudflare merged Pages into Workers platform. Both use lightning icon (⚡) now. Focus on selecting "Pages" workflow during creation, not the icon.</li>
                 <li><strong>HTTPS > SSH in China:</strong> SSH connections to GitHub are frequently blocked. HTTPS with token works reliably.</li>
                 <li><strong>Fine-grained tokens:</strong> More secure than classic tokens. Can limit to specific repos and set expiration.</li>
                 <li><strong>Cloudflare CDN > Tunnel:</strong> For static sites in China, direct CDN hosting is more reliable than Tunnel.</li>
