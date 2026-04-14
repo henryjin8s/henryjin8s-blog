@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📱 Hermes Agent Telegram Bot 配置指南 (Docker + 阿里云百炼)</title>
+    <meta name="description" content="详细教程：如何在 Docker 中配置 Hermes Agent 的 Telegram Bot，使用阿里云百炼 API，解决 401 认证问题">
+    <meta name="author" content="Henry Jin">
+    <meta name="date" content="2026-04-14">
+    <style>
+        :root {
+            --bg: #fafafa;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --text-light: #666666;
+            --accent: #007aff;
+            --border: #e5e5e5;
+            --code-bg: #f5f5f5;
+            --success: #34c759;
+            --warning: #ff9500;
+            --error: #ff3b30;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0a0a0a;
+            --card-bg: #1a1a1a;
+            --text: #ffffff;
+            --text-light: #a0a0a0;
+            --border: #333333;
+            --code-bg: #2d2d2d;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 80px 20px 40px;
+        }
+
+        /* Header */
+        .post-header {
+            margin-bottom: 40px;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            color: var(--text-light);
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .post-tag {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            background: var(--code-bg);
+        }
+
+        h1 {
+            font-size: 28px;
+            line-height: 1.3;
+            margin-bottom: 10px;
+        }
+
+        .post-summary {
+            font-size: 16px;
+            color: var(--text-light);
+            margin-top: 15px;
+        }
+
+        /* Content */
+        .post-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-size: 22px;
+            margin: 30px 0 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h3 {
+            font-size: 18px;
+            margin: 25px 0 12px;
+        }
+
+        p {
+            margin: 15px 0;
+        }
+
+        ul, ol {
+            margin: 15px 0 15px 25px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        /* Code blocks */
+        pre {
+            background: var(--code-bg);
+            border-radius: 8px;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        code {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            background: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* Callouts */
+        .callout {
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 4px solid;
+        }
+
+        .callout-warning {
+            background: rgba(255, 149, 0, 0.1);
+            border-left-color: var(--warning);
+        }
+
+        .callout-tip {
+            background: rgba(0, 122, 255, 0.1);
+            border-left-color: var(--accent);
+        }
+
+        .callout-success {
+            background: rgba(52, 199, 89, 0.1);
+            border-left-color: var(--success);
+        }
+
+        .callout-error {
+            background: rgba(255, 59, 48, 0.1);
+            border-left-color: var(--error);
+        }
+
+        .callout-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-weight: 600;
+            background: var(--code-bg);
+        }
+
+        /* Footer */
+        .post-footer {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        /* Back link */
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← 返回首页</a>
+        
+        <div class="post-header">
+            <div class="post-meta">
+                <span>📅 2026-04-14</span>
+                <span>⏱️ 15 分钟阅读</span>
+                <span class="post-tag">Hermes Agent</span>
+                <span class="post-tag">Telegram</span>
+                <span class="post-tag">Docker</span>
+                <span class="post-tag">阿里云百炼</span>
+            </div>
+            <h1>📱 Hermes Agent Telegram Bot 配置指南</h1>
+            <p class="post-summary">在 Docker 中配置 Hermes Agent 的 Telegram Bot，使用阿里云百炼 API，解决 401 认证问题的完整教程</p>
+        </div>
+
+        <div class="post-content">
+            <div class="callout callout-success">
+                <div class="callout-title">✅ 本文亮点</div>
+                <ul>
+                    <li>Docker 容器化部署 Hermes Agent</li>
+                    <li>Telegram Bot 完整配置流程</li>
+                    <li>阿里云百炼 (Bailian) API 集成</li>
+                    <li>解决 401 认证错误的终极方案</li>
+                    <li>代理配置（国内访问 Telegram）</li>
+                </ul>
+            </div>
+
+            <h2>📋 前置条件</h2>
+            <ul>
+                <li>Docker + Docker Compose 已安装</li>
+                <li>Telegram 账号</li>
+                <li>阿里云百炼 API Key（原 DashScope/Coding Plan）</li>
+                <li>可用的 HTTP/HTTPS 代理（用于访问 Telegram API）</li>
+            </ul>
+
+            <h2>🚀 步骤 1：创建 Telegram Bot</h2>
+            <ol>
+                <li>在 Telegram 搜索 <code>@BotFather</code></li>
+                <li>发送 <code>/newbot</code></li>
+                <li>设置 Bot 名称（如 "Johnny Assistant"）</li>
+                <li>设置 Bot 用户名（必须以 <code>bot</code> 结尾，如 <code>johnny_helper_bot</code>）</li>
+                <li>BotFather 会返回 <strong>API Token</strong>，格式类似：
+                    <pre><code>123456789:ABCdefGHIjklMNOpqrSTUvwxYZ</code></pre>
+                </li>
+            </ol>
+
+            <div class="callout callout-warning">
+                <div class="callout-title">⚠️ 安全提醒</div>
+                <p><strong>Bot Token 相当于密码！</strong>不要泄露给他人，不要提交到 Git。如果泄露，立即在 BotFather 中使用 <code>/revoke</code> 重新生成。</p>
+            </div>
+
+            <h2>📝 步骤 2：获取你的 Telegram User ID</h2>
+            <p>Hermes 使用 User ID 限制访问权限，防止陌生人使用你的 Bot。</p>
+            <ol>
+                <li>在 Telegram 搜索 <code>@userinfobot</code> 或 <code>@get_id_bot</code></li>
+                <li>发送任意消息，它会回复你的 User ID（数字，如 <code>8128834338</code>）</li>
+                <li>保存这个数字</li>
+            </ol>
+
+            <h2>🐳 步骤 3：创建 Hermes 数据目录</h2>
+            <pre><code>mkdir -p ~/hermes-agent/data
+cd ~/hermes-agent</code></pre>
+
+            <h2>⚙️ 步骤 4：创建配置文件</h2>
+            <h3>4.1 创建 config.yaml</h3>
+            <pre><code>cat > data/config.yaml << 'EOF'
+llm:
+  provider: openrouter
+  model: qwen/qwen3.5-plus
+  base_url: https://coding.dashscope.aliyuncs.com/v1
+agent:
+  name: Johnny
+memory:
+  enabled: true
+channels:
+  cli:
+    enabled: true
+gateway:
+  enabled: true
+model: qwen3.5-plus
+EOF</code></pre>
+
+            <h3>4.2 创建 .env 文件</h3>
+            <div class="callout callout-warning">
+                <div class="callout-title">⚠️ 替换下面的占位符</div>
+                <ul>
+                    <li><code>YOUR_BOT_TOKEN</code> → 你的 Telegram Bot Token</li>
+                    <li><code>YOUR_USER_ID</code> → 你的 Telegram User ID</li>
+                    <li><code>YOUR_BAILIAN_API_KEY</code> → 你的阿里云百炼 API Key</li>
+                    <li><code>YOUR_PROXY_URL</code> → 你的代理地址（如 <code>192.168.1.100:7890</code>）</li>
+                </ul>
+            </div>
+
+            <pre><code>cat > data/.env << 'EOF'
+# API Keys (所有可能的变量名，确保兼容性)
+OPENAI_API_KEY=YOUR_BAILIAN_API_KEY
+OPENAI_BASE_URL=https://coding.dashscope.aliyuncs.com/v1
+OPENROUTER_API_KEY=YOUR_BAILIAN_API_KEY
+DASHSCOPE_API_KEY=YOUR_BAILIAN_API_KEY
+DASHSCOPE_BASE_URL=https://coding.dashscope.aliyuncs.com/v1
+
+# Telegram Bot Configuration
+TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN
+TELEGRAM_ALLOWED_USERS=YOUR_USER_ID
+
+# Proxy Configuration (中国大陆必需)
+HTTP_PROXY=http://YOUR_PROXY_URL
+HTTPS_PROXY=http://YOUR_PROXY_URL
+NO_PROXY=localhost,127.0.0.1,192.168.0.0/16
+EOF</code></pre>
+
+            <h2>🔧 步骤 5：修改 Hermes 源码（关键修复）</h2>
+            <div class="callout callout-error">
+                <div class="callout-title">❗ 重要：解决 401 错误</div>
+                <p>Hermes 默认硬编码了 OpenRouter 的 URL，即使配置了 <code>base_url</code> 也会被忽略。需要修改源码。</p>
+            </div>
+
+            <p>启动临时容器修改源码：</p>
+            <pre><code>docker run --rm -v ~/hermes-agent/data:/opt/data nousresearch/hermes-agent:latest \
+  sed -i 's|https://openrouter.ai/api/v1|https://coding.dashscope.aliyuncs.com/v1|g' \
+  /opt/hermes/hermes_constants.py</code></pre>
+
+            <p>验证修改：</p>
+            <pre><code>docker run --rm -v ~/hermes-agent/data:/opt/data nousresearch/hermes-agent:latest \
+  grep "OPENROUTER_BASE_URL" /opt/hermes/hermes_constants.py</code></pre>
+
+            <p>应该输出：</p>
+            <pre><code>OPENROUTER_BASE_URL = "https://coding.dashscope.aliyuncs.com/v1"</code></pre>
+
+            <h2>🎯 步骤 6：启动 Johnny</h2>
+            <pre><code>docker run -d \
+  --name johnny \
+  --restart unless-stopped \
+  -v ~/hermes-agent/data:/opt/data \
+  -e OPENROUTER_API_KEY=YOUR_BAILIAN_API_KEY \
+  -e OPENAI_BASE_URL=https://coding.dashscope.aliyuncs.com/v1 \
+  -e HTTP_PROXY=http://YOUR_PROXY_URL \
+  -e HTTPS_PROXY=http://YOUR_PROXY_URL \
+  -e TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN \
+  -e TELEGRAM_ALLOWED_USERS=YOUR_USER_ID \
+  nousresearch/hermes-agent:latest \
+  gateway run</code></pre>
+
+            <h2>✅ 步骤 7：验证配置</h2>
+            <p>查看日志：</p>
+            <pre><code>docker logs johnny --tail 30</code></pre>
+
+            <p>检查配置：</p>
+            <pre><code>docker exec johnny hermes config show</code></pre>
+
+            <p>应该看到：</p>
+            <pre><code>◆ API Keys
+  OpenRouter     sk-s...xxxx  ✓
+  ...
+◆ Model
+  Model:        qwen3.5-plus
+  Base URL:     https://coding.dashscope.aliyuncs.com/v1</code></pre>
+
+            <h2>📱 步骤 8：测试 Telegram Bot</h2>
+            <ol>
+                <li>在 Telegram 搜索你的 Bot 用户名（如 <code>@johnny_helper_bot</code>）</li>
+                <li>点击 <strong>Start</strong> 或发送 <code>/start</code></li>
+                <li>发送 "你好" 或 "hello" 测试</li>
+                <li>应该收到 AI 回复！</li>
+            </ol>
+
+            <div class="callout callout-tip">
+                <div class="callout-title">💡 可选配置</div>
+                <ul>
+                    <li><strong>群聊支持</strong>：在 BotFather 中关闭隐私模式（Bot Settings → Group Privacy → Turn off）</li>
+                    <li><strong>自定义命令</strong>：在 BotFather 中使用 <code>/setcommands</code> 设置命令菜单</li>
+                    <li><strong>Bot 头像</strong>：在 BotFather 中使用 <code>/setuserpic</code> 上传头像</li>
+                </ul>
+            </div>
+
+            <h2>🔍 故障排查</h2>
+            <h3>问题 1：401 认证错误</h3>
+            <pre><code>⚠️  API call failed (attempt 1/3): AuthenticationError [HTTP 401]
+   🔌 Provider: openrouter  Model: qwen3.5-plus
+   🌐 Endpoint: https://openrouter.ai/api/v1</code></pre>
+
+            <p><strong>原因：</strong>Hermes 使用了默认的 OpenRouter URL，而不是配置的 DashScope URL。</p>
+            <p><strong>解决：</strong>按照步骤 5 修改 <code>hermes_constants.py</code>。</p>
+
+            <h3>问题 2：Telegram 无法连接</h3>
+            <pre><code>WARNING gateway.platforms.telegram_network: [Telegram] Primary api.telegram.org connection failed</code></pre>
+
+            <p><strong>原因：</strong>代理配置错误或代理不可用。</p>
+            <p><strong>解决：</strong></p>
+            <ol>
+                <li>检查代理是否可用：<code>curl -x http://YOUR_PROXY_URL https://api.telegram.org</code></li>
+                <li>确保容器环境变量正确：<code>docker exec johnny env | grep PROXY</code></li>
+                <li>重启容器：<code>docker restart johnny</code></li>
+            </ol>
+
+            <h3>问题 3：API Key 未识别</h3>
+            <pre><code>◆ API Keys
+  OpenRouter     (not set)</code></pre>
+
+            <p><strong>原因：</strong>.env 文件权限问题或容器未正确加载环境变量。</p>
+            <p><strong>解决：</strong></p>
+            <ol>
+                <li>检查 .env 文件权限：<code>chmod 600 data/.env</code></li>
+                <li>在 docker run 时直接传入环境变量（见步骤 6）</li>
+                <li>重启容器</li>
+            </ol>
+
+            <h2>📊 配置总结</h2>
+            <table>
+                <tr>
+                    <th>组件</th>
+                    <th>配置值</th>
+                </tr>
+                <tr>
+                    <td>Provider</td>
+                    <td><code>openrouter</code>（但使用 DashScope URL）</td>
+                </tr>
+                <tr>
+                    <td>Model</td>
+                    <td><code>qwen/qwen3.5-plus</code></td>
+                </tr>
+                <tr>
+                    <td>Base URL</td>
+                    <td><code>https://coding.dashscope.aliyuncs.com/v1</code></td>
+                </tr>
+                <tr>
+                    <td>API Key 变量</td>
+                    <td><code>OPENROUTER_API_KEY</code>（Hermes 要求）</td>
+                </tr>
+                <tr>
+                    <td>Telegram Token</td>
+                    <td><code>TELEGRAM_BOT_TOKEN</code></td>
+                </tr>
+                <tr>
+                    <td>允许的用户</td>
+                    <td><code>TELEGRAM_ALLOWED_USERS</code>（逗号分隔多个 ID）</td>
+                </tr>
+            </table>
+
+            <h2>🎉 完成！</h2>
+            <p>现在你可以在 Telegram 上随时随地和 Johnny 聊天了！🚀</p>
+        </div>
+
+        <div class="post-footer">
+            <p>© 2026 Henry Jin | <a href="../about.html" style="color: var(--accent);">关于我</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Dark mode support
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
+</body>
+</html>
