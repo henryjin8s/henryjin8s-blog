@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Hermes Agent: 阿里云百炼 → MiniMax 迁移实录</title>
+    <meta name="description" content="记录 Hermes Agent 从阿里云百炼迁移到 MiniMax 的过程，包括踩坑经历和解决方案">
+    <meta name="author" content="Henry Jin">
+    <meta name="date" content="2026-04-26">
+    <style>
+        :root {
+            --bg: #fafafa;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --text-light: #666666;
+            --accent: #6b5ce7;
+            --border: #e5e5e5;
+            --code-bg: #f5f5f5;
+            --success: #34c759;
+            --warning: #ff9500;
+            --error: #ff3b30;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0a0a0a;
+            --card-bg: #1a1a1a;
+            --text: #ffffff;
+            --text-light: #a0a0a0;
+            --border: #333333;
+            --code-bg: #2d2d2d;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 80px 20px 40px;
+        }
+
+        .post-header {
+            margin-bottom: 40px;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            color: var(--text-light);
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .post-tag {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            background: var(--code-bg);
+        }
+
+        h1 {
+            font-size: 28px;
+            line-height: 1.3;
+            margin-bottom: 10px;
+        }
+
+        .post-summary {
+            font-size: 16px;
+            color: var(--text-light);
+            margin-top: 15px;
+        }
+
+        .post-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-size: 22px;
+            margin: 30px 0 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h3 {
+            font-size: 18px;
+            margin: 25px 0 12px;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        code {
+            background: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 14px;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .error-box {
+            background: rgba(255, 59, 48, 0.1);
+            border-left: 4px solid var(--error);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .warning-box {
+            background: rgba(255, 149, 0, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .success-box {
+            background: rgba(52, 199, 89, 0.1);
+            border-left: 4px solid var(--success);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .info-box {
+            background: rgba(0, 122, 255, 0.1);
+            border-left: 4px solid var(--accent);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 5px;
+            bottom: 5px;
+            width: 2px;
+            background: var(--border);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -34px;
+            top: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        .timeline-time {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 5px;
+        }
+
+        .timeline-content {
+            background: var(--code-bg);
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comparison-table th {
+            font-weight: 600;
+            background: var(--code-bg);
+        }
+
+        .comparison-table tr:hover {
+            background: var(--code-bg);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent);
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Home</a>
+
+        <header class="post-header">
+            <div class="post-meta">
+                <span class="post-tag" style="background: #6b5ce7;">Hermes</span>
+                <span class="post-tag" style="background: #ff6b6b;">MiniMax</span>
+                <span>2026-04-26</span>
+                <span>10 min read</span>
+            </div>
+            <h1>🚀 Hermes Agent: 阿里云百炼 → MiniMax 迁移实录</h1>
+            <p class="post-summary">记录 Johnny（我的 Hermes 实例）从阿里云百炼迁移到 MiniMax 的完整过程，包括踩坑经历和解决方案</p>
+        </header>
+
+        <article class="post-content">
+            <h2>📋 背景</h2>
+            <p>之前给 Johnny（跑在 K20 服务器上的 Hermes Agent）配置的是阿里云百炼 API，但最近体验不太稳定，经常出现 401 认证错误。于是决定迁移到 MiniMax-CN，体验一下新模型。</p>
+
+            <h2>🔄 迁移过程</h2>
+
+            <h3>1. 迁移前状态</h3>
+            <table class="comparison-table">
+                <tr>
+                    <th>项目</th>
+                    <th>Before (百炼)</th>
+                    <th>After (MiniMax)</th>
+                </tr>
+                <tr>
+                    <td>Provider</td>
+                    <td>openrouter</td>
+                    <td>minimax-cn</td>
+                </tr>
+                <tr>
+                    <td>Endpoint</td>
+                    <td>coding.dashscope.aliyuncs.com/v1</td>
+                    <td>api.minimaxi.com/anthropic</td>
+                </tr>
+                <tr>
+                    <td>Model</td>
+                    <td>qwen3.5-plus</td>
+                    <td>MiniMax-M2.7</td>
+                </tr>
+                <tr>
+                    <td>Key 前缀</td>
+                    <td>sk-sp-...</td>
+                    <td>sk-cp-...</td>
+                </tr>
+            </table>
+
+            <h3>2. 遇到的问题</h3>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-time">问题 1: API Key 重复拼接</div>
+                    <div class="timeline-content">
+                        <strong>现象：</strong>Johnny 无法连接，提示 401 认证失败<br>
+                        <strong>原因：</strong>MINIMAX_CN_API_KEY 在配置文件中重复拼接了两遍<br>
+                        <strong>解决：</strong>修正为单份正确的 key
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-time">问题 2: Provider 配置未生效</div>
+                    <div class="timeline-content">
+                        <strong>现象：</strong>修改 config.yaml 后，日志显示仍在使用 openrouter + dashscope<br>
+                        <strong>原因：</strong>Gateway 配置结构和 Johnny 个人配置结构不同，且环境变量优先级高于 config.yaml<br>
+                        <strong>解决：</strong>修正 Gateway 配置文件格式，使用正确的嵌套结构
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-time">问题 3: 401 Authentication Error</div>
+                    <div class="timeline-content">
+                        <strong>现象：</strong>日志报错 <code>login fail: Please carry the API secret key in the 'Authorization' field</code><br>
+                        <strong>原因：</strong>openrouter provider 无法识别 minimax-cn 的 key 格式<br>
+                        <strong>解决：</strong>确保 provider 正确指定为 minimax-cn
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-time">问题 4: Model 不支持</div>
+                    <div class="timeline-content">
+                        <strong>现象：</strong><code>model 'MiniMax-M2.7' is not supported</code><br>
+                        <strong>原因：</strong>虽然指定了 minimax-cn provider，但实际请求还是发到了 dashscope endpoint<br>
+                        <strong>解决：</strong>修正 config.yaml 中的 model.provider 字段
+                    </div>
+                </div>
+            </div>
+
+            <h3>3. 关键配置文件修改</h3>
+
+            <p><strong>Gateway 配置</strong> (<code>/home/henry/hermes-agent/data/config.yaml</code>)</p>
+            <pre><code># 修改前（错误）
+model: qwen3.5-plus
+providers:
+  openai:
+    base_url: https://coding.dashscope.aliyuncs.com/v1
+    api_key_env: OPENAI_API_KEY
+
+# 修改后（正确）
+model:
+  default: MiniMax-M2.7
+  provider: minimax-cn
+  base_url: https://api.minimaxi.com/anthropic
+providers:
+  minimax-cn:
+    base_url: https://api.minimaxi.com/anthropic
+    api_key_env: MINIMAX_CN_API_KEY</code></pre>
+
+            <p><strong>环境变量</strong> (<code>/etc/default/hermes</code>)</p>
+            <pre><code># 添加 MiniMax Key
+MINIMAX_CN_API_KEY=sk-cp-XXXXXXXXXX...</code></pre>
+
+            <h3>4. 重启服务</h3>
+            <pre><code>sudo systemctl restart hermes
+sudo journalctl -u hermes -f  # 查看日志确认启动正常</code></pre>
+
+            <h2>✅ 验证迁移成功</h2>
+
+            <div class="success-box">
+                <strong>迁移完成！</strong> Johnny 现在使用 MiniMax-M2.7 模型，通过 Telegram/WeChat 消息测试正常响应。
+            </div>
+
+            <h2>🔐 安全注意事项</h2>
+
+            <div class="warning-box">
+                <strong>隐私提醒：</strong>本文已对所有敏感信息（API Keys、Tokens）进行脱敏处理。实际操作时请：
+                <ul>
+                    <li>不要将完整的 API Key 提交到 Git</li>
+                    <li>使用环境变量或 .env 文件存储敏感信息</li>
+                    <li>确保配置文件权限设置为 600</li>
+                </ul>
+            </div>
+
+            <h2>📝 总结</h2>
+            <p>这次迁移比预期曲折，主要原因是：</p>
+            <ul>
+                <li>Gateway 配置和 Agent 个人配置的结构不同</li>
+                <li>环境变量优先级容易造成混淆</li>
+                <li>provider 和 model 的对应关系需要仔细核对</li>
+            </ul>
+            <p>不过最终 Johnny 成功切换到 MiniMax-M2.7，体验比以前流畅很多！</p>
+
+            <h2>🔗 相关链接</h2>
+            <ul>
+                <li><a href="https://www.minimaxi.com/" target="_blank">MiniMax 官网</a></li>
+                <li><a href="https://github.com/NousResearch/hermes-agent" target="_blank">Hermes Agent GitHub</a></li>
+                <li><a href="/posts/2026-04-14-hermes-telegram-docker-setup.html">之前的 Hermes + Telegram 配置教程</a></li>
+            </ul>
+        </article>
+    </div>
+</body>
+</html>
