@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 我把 Jetson Orin Nano 搭成了一个本地 AI 小主机</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card-bg: #161b22;
+            --text: #e6edf3;
+            --text-light: #8b949e;
+            --accent: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-purple: #bc8cff;
+            --accent-orange: #f0883e;
+            --accent-pink: #f778ba;
+            --border: #30363d;
+            --code-bg: #1c2128;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.7; font-size: 16px; }
+        .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+        .back-btn { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); text-decoration: none; font-size: 14px; margin-bottom: 30px; transition: opacity 0.2s; }
+        .back-btn:hover { opacity: 0.7; }
+        .post-header { margin-bottom: 40px; }
+        .post-title { font-size: 28px; font-weight: 700; color: var(--text); margin-bottom: 15px; line-height: 1.3; }
+        .post-meta { display: flex; gap: 15px; font-size: 13px; color: var(--text-light); flex-wrap: wrap; }
+        .post-meta span { display: flex; align-items: center; gap: 4px; }
+        .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+        .tag { background: rgba(88,166,255,0.15); color: var(--accent); padding: 3px 10px; border-radius: 20px; font-size: 12px; }
+        .post-content { line-height: 1.8; }
+        .post-content h2 { font-size: 20px; font-weight: 600; color: var(--accent); margin: 40px 0 15px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+        .post-content h3 { font-size: 16px; font-weight: 600; color: var(--text); margin: 25px 0 10px; }
+        .post-content p { margin-bottom: 15px; color: var(--text); }
+        .post-content strong { color: var(--accent-orange); }
+        .post-content em { color: var(--accent-pink); font-style: italic; }
+        .post-content ul, .post-content ol { margin: 15px 0 15px 25px; }
+        .post-content li { margin-bottom: 8px; color: var(--text); }
+        .post-content blockquote { border-left: 3px solid var(--accent); padding: 10px 15px; margin: 20px 0; background: var(--card-bg); border-radius: 0 8px 8px 0; color: var(--text-light); font-style: italic; }
+        .post-content pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 20px 0; overflow-x: auto; font-size: 14px; line-height: 1.6; }
+        .post-content code { font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, Monaco, monospace; }
+        .post-content pre code { color: var(--text); background: none; padding: 0; border: none; font-size: 13px; }
+        .post-content p code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 14px; color: var(--accent-green); }
+        .post-content a { color: var(--accent); text-decoration: none; }
+        .post-content a:hover { text-decoration: underline; }
+        .post-content hr { border: none; border-top: 1px solid var(--border); margin: 30px 0; }
+        .highlight-green { color: var(--accent-green); font-weight: 600; }
+        .highlight-blue { color: var(--accent); font-weight: 600; }
+        .highlight-purple { color: var(--accent-purple); font-weight: 600; }
+        .highlight-orange { color: var(--accent-orange); font-weight: 600; }
+        .highlight-pink { color: var(--accent-pink); font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/posts/" class="back-btn">← Back to Blog</a>
+        <article>
+            <div class="post-header">
+                <h1 class="post-title">🤖 我把 Jetson Orin Nano 搭成了一个本地 AI 小主机</h1>
+                <div class="post-meta">
+                    <span>📅 June 7, 2026</span>
+                    <span>⏱️ 25 min read</span>
+                </div>
+                <div class="tags">
+                    <span class="tag">Jetson</span>
+                    <span class="tag">Local AI</span>
+                    <span class="tag">Gemma</span>
+                    <span class="tag">llama.cpp</span>
+                    <span class="tag">Codex</span>
+                    <span class="tag">Melody</span>
+                    <span class="tag">sing-box</span>
+                    <span class="tag">systemd</span>
+                    <span class="tag">Tailscale</span>
+                </div>
+            </div>
+            <div class="post-content">
+                <p>最近终于抽时间继续折腾 Jetson Orin Nano。</p>
+
+                <p>一开始我的目标其实很简单：我想让它跑一个本地模型，然后慢慢变成一个可以长期运行的个人 AI 助手。</p>
+
+                <p>但实际做下来，这件事比"跑起来一个模型"复杂很多。因为一个真正可用的本地 AI 设备，不只是能回答一句话就结束了。它还需要：</p>
+
+                <ul>
+                    <li>本地模型</li>
+                    <li>云端模型</li>
+                    <li>网络出口</li>
+                    <li>自动恢复</li>
+                    <li>服务管理</li>
+                    <li>模型切换</li>
+                    <li>代理配置</li>
+                    <li>断电恢复</li>
+                    <li>后续语音和视觉扩展</li>
+                </ul>
+
+                <p>这次折腾下来，Jetson 基本已经从"刚装好的开发板"，变成了一个初步可长期运行的 AI 小主机。</p>
+
+                <hr>
+
+                <h2>一、先从清理系统开始</h2>
+
+                <p>刚开始检查磁盘的时候，发现系统空间占用比预期高很多。</p>
+
+                <p>最后排查到里面有不少历史遗留内容，包括：</p>
+
+                <ul>
+                    <li>旧 Docker 镜像</li>
+                    <li>旧 llama.cpp Docker 环境</li>
+                    <li>Docker overlay 数据</li>
+                    <li>CUDA local repo</li>
+                    <li>CUDNN local repo</li>
+                    <li>TensorRT local repo</li>
+                </ul>
+
+                <p>这些东西并不是全部没用，但很多属于"安装时留下来的本地缓存"或者"旧实验环境"。真正危险的是，模型文件一开始其实藏在 Docker overlay 里面。</p>
+
+                <p>如果直接清理 Docker，很可能会把本地模型一起删掉。</p>
+
+                <p>所以第一步并不是直接 <code>prune</code>，而是先确认：</p>
+
+                <ul>
+                    <li>模型到底在哪里</li>
+                    <li>模型是不是唯一副本</li>
+                    <li>CUDA / PyTorch / TensorRT 是否还依赖这些文件</li>
+                    <li>Docker 镜像里有没有还需要保留的内容</li>
+                </ul>
+
+                <p>最后成功把 Gemma 模型从 Docker 环境里迁移出来，保存到用户目录。</p>
+
+                <p>清理前后大概变化是：</p>
+
+                <ul>
+                    <li>清理前：约 56GB used</li>
+                    <li>清理后：约 32GB used</li>
+                    <li>净释放：约 24GB</li>
+                </ul>
+
+                <p>这一步的重点不是"删了多少"，而是保住了真正重要的东西。</p>
+
+                <hr>
+
+                <h2>二、保住本地模型</h2>
+
+                <p>这次保留下来的本地模型是 <span class="highlight-purple">Gemma 4 E2B</span> 的 GGUF 版本。</p>
+
+                <p>模型文件被保存到本机用户目录下，不再依赖 Docker overlay。这样以后 Docker、容器、旧镜像怎么删，都不会影响模型本体。</p>
+
+                <p>当前本地模型目录大致包含：</p>
+
+                <ul>
+                    <li>Gemma 4 E2B GGUF 主模型</li>
+                    <li>mmproj 文件</li>
+                </ul>
+
+                <p>总大小约 3.8GB。</p>
+
+                <p>这一步完成后，模型从"藏在 Docker 里面的不确定状态"，变成了"明确、可管理、可备份的本地模型资产"。</p>
+
+                <hr>
+
+                <h2>三、修复 apt / dpkg</h2>
+
+                <p>清理过程中还发现了一个隐藏问题：系统的 dpkg 状态数据库出过问题。</p>
+
+                <p>具体表现是：</p>
+
+                <ul>
+                    <li><code>apt</code> 操作异常</li>
+                    <li><code>dpkg -l</code> 结果异常</li>
+                    <li><code>/var/lib/dpkg/status</code> 缺失或损坏</li>
+                </ul>
+
+                <p>这类问题短期可能不影响已经运行的 AI 服务，但以后只要安装软件、更新依赖、装浏览器、装工具，就会出问题。</p>
+
+                <p>最后通过系统备份恢复了 dpkg status 数据库，并确认：</p>
+
+                <ul>
+                    <li><code>dpkg -l</code> 正常</li>
+                    <li><code>apt-get check</code> 正常</li>
+                    <li>软件包数据库恢复</li>
+                </ul>
+
+                <p>这一步算是本次项目里的隐藏大坑。如果不修，后面装 sing-box、浏览器、工具链都会很麻烦。</p>
+
+                <hr>
+
+                <h2>四、重新编译 llama.cpp</h2>
+
+                <p>原来的 llama.cpp 是 Docker 里的旧环境。清理 Docker 后，本地只保留了模型，没有推理运行时。</p>
+
+                <p>所以接下来重新在 Jetson 上编译 llama.cpp，并启用 CUDA 支持。</p>
+
+                <p>最终生成了：</p>
+
+                <ul>
+                    <li>llama-server</li>
+                    <li>llama-cli</li>
+                </ul>
+
+                <p>并确认 CUDA / cuBLAS 能正常链接。</p>
+
+                <p>这个过程 CPU 一度满载，属于正常现象。因为它不是在"安装一个软件包"，而是在 Jetson 上本地编译 C++ / CUDA 程序。</p>
+
+                <p>编译完成后，Jetson 拥有了原生运行 GGUF 模型的能力，不再依赖旧 Docker 镜像。</p>
+
+                <hr>
+
+                <h2>五、创建 local-gemma-agent</h2>
+
+                <p>有了模型和 llama.cpp 后，下一步是把它包装成一个长期运行的本地服务。</p>
+
+                <p>本地 Gemma Agent 的目标是：</p>
+
+                <ul>
+                    <li>在 Jetson 本机运行</li>
+                    <li>只监听 localhost</li>
+                    <li>提供 OpenAI-compatible API</li>
+                    <li>供 Hermes / Melody 或其他 Agent 调用</li>
+                    <li>不暴露到公网</li>
+                </ul>
+
+                <p>服务地址：</p>
+
+<pre><code>http://127.0.0.1:18080/v1</code></pre>
+
+                <p>健康检查：</p>
+
+<pre><code>http://127.0.0.1:18080/health</code></pre>
+
+                <p>测试结果正常返回：</p>
+
+<pre><code>{"status":"ok"}</code></pre>
+
+                <p>这意味着本地模型已经不只是"能跑"，而是变成了一个本地 API 服务。</p>
+
+                <hr>
+
+                <h2>六、修复 GPU Offload，速度提升 6 倍</h2>
+
+                <p>刚开始测试 Gemma 的时候，速度非常慢。</p>
+
+                <p>第一次测试大概只有：</p>
+
+                <blockquote>3 token/s 左右</blockquote>
+
+                <p>后来发现虽然 llama.cpp 识别到了 CUDA，但启动参数里没有真正把模型层 offload 到 GPU。</p>
+
+                <p>也就是说：</p>
+
+                <blockquote>看起来有 CUDA<br>实际上主要在 CPU 跑</blockquote>
+
+                <p>后来加上 GPU offload 参数后，速度提升到了：</p>
+
+                <blockquote>20~26 token/s</blockquote>
+
+                <p>大概是 <span class="highlight-green">6 倍提升</span>。</p>
+
+                <p>这一步非常关键。因为 Jetson Orin Nano 的价值就在于它有 GPU，如果模型主要跑 CPU，就浪费了硬件能力。</p>
+
+                <hr>
+
+                <h2>七、把 local-gemma-agent 交给 systemd 管理</h2>
+
+                <p>手动启动模型有一个问题：</p>
+
+                <ul>
+                    <li>终端关了可能会停</li>
+                    <li>重启后不会自动恢复</li>
+                    <li>断电后需要手动 SSH 进去启动</li>
+                </ul>
+
+                <p>所以后面给 local-gemma-agent 创建了 systemd service。</p>
+
+                <p>最终实现：</p>
+
+                <ul>
+                    <li>systemd 管理</li>
+                    <li>开机自动启动</li>
+                    <li>异常退出自动重启</li>
+                    <li>使用普通用户运行</li>
+                    <li>绑定 127.0.0.1:18080</li>
+                    <li>保留 GPU offload 参数</li>
+                </ul>
+
+                <p>现在系统重启后，本地 Gemma 服务会自动恢复。</p>
+
+                <p>这是从"开发环境"进入"服务环境"的重要一步。</p>
+
+                <hr>
+
+                <h2>八、搭建 Codex Coding Agent</h2>
+
+                <p>除了本地模型，我还希望有一个更强的云端 coding agent。</p>
+
+                <p>本地 Gemma 适合：</p>
+
+                <ul>
+                    <li>快速响应</li>
+                    <li>离线使用</li>
+                    <li>简单问答</li>
+                    <li>本地控制</li>
+                    <li>Agent 路由</li>
+                </ul>
+
+                <p>但复杂代码任务、本地项目分析、debug、架构修改，还是需要更强的模型。</p>
+
+                <p>所以我搭了一个 Codex Coding Agent。</p>
+
+                <p>过程里遇到了几个坑：</p>
+
+                <h3>1. Codex 登录问题</h3>
+
+                <p>Jetson 是 headless / 半 headless 环境，OAuth 登录会跳转 localhost。如果在另一台电脑浏览器打开登录链接，localhost 指向的是那台电脑，不是 Jetson。</p>
+
+                <p>后来尝试 device code，也因为网络原因失败。</p>
+
+                <p>最终解决方式是：</p>
+
+                <ul>
+                    <li>在 Mac 上完成 Codex 登录</li>
+                    <li>找到本机 Codex 的 auth 文件</li>
+                    <li>复制到 Jetson 的独立 Codex 目录</li>
+                </ul>
+
+                <p>这样绕开了 Jetson 上 OAuth callback / token exchange 的问题。</p>
+
+                <h3>2. 错误代理导致 Codex 超时</h3>
+
+                <p>一开始 Codex 进程读到了一个错误的代理地址。这个代理地址来自另一个网段，Jetson 实际上访问不到。</p>
+
+                <p>结果就是：</p>
+
+                <ul>
+                    <li>认证看起来成功</li>
+                    <li>进入 Codex 界面</li>
+                    <li>但是模型请求一直 Working</li>
+                    <li>WebSocket / HTTPS 都超时</li>
+                </ul>
+
+                <p>后来把错误 proxy 配置移除，Codex 正常访问 GPT-5.5。</p>
+
+                <p>现在 Codex 已经可以作为 coding agent 使用。</p>
+
+                <hr>
+
+                <h2>九、给主 Agent 取名 Melody</h2>
+
+                <p>我不想每个模型都像不同的人。</p>
+
+                <p>所以设计了一个统一的人格层：<span class="highlight-pink">Melody</span>。</p>
+
+                <p>底层可以是：</p>
+
+                <ul>
+                    <li>Hermes</li>
+                    <li>Gemma</li>
+                    <li>Codex</li>
+                    <li>MiniMax</li>
+                    <li>未来的语音模型</li>
+                    <li>未来的视觉模型</li>
+                </ul>
+
+                <p>但用户面对的统一身份是 Melody。</p>
+
+                <p>也就是说：</p>
+
+                <blockquote>人格 = Melody<br>能力 = 不同模型 / 不同 Agent</blockquote>
+
+                <p>这比"每个模型一个人格"更自然。</p>
+
+                <p>Melody 的设定是：</p>
+
+                <ul>
+                    <li>温和</li>
+                    <li>好说话</li>
+                    <li>有耐心</li>
+                    <li>技术能力强</li>
+                    <li>不会让用户觉得自己问了蠢问题</li>
+                    <li>会优先保护数据</li>
+                    <li>做危险操作前先解释风险</li>
+                    <li>喜欢把复杂项目拆成一步一步</li>
+                </ul>
+
+                <p>这个人格已经写进 Hermes 的 SOUL 文件。主 Agent 之后会以 Melody 的身份运行。</p>
+
+                <p>不过 subagent 默认不会自动继承 SOUL 文件，这是 Hermes 的隔离设计。所以额外创建了一个 Melody subagent context snippet，未来需要子 Agent 保持同一语气时，可以显式传入。</p>
+
+                <hr>
+
+                <h2>十、配置 sing-box，让 Jetson 拥有自己的网络出口</h2>
+
+                <p>之前 Jetson 依赖其他设备的代理，这不适合长期运行。</p>
+
+                <p>因为一个真正的 AI 小主机应该自己能处理网络访问，而不是依赖 Mac、Windows 或路由器临时配置。</p>
+
+                <p>所以这次安装并配置了 sing-box。</p>
+
+                <p>一开始尝试 TUN 模式，但 Jetson 当前内核 / netfilter 对相关规则支持不完整，导致 TUN 无法正常工作。</p>
+
+                <p>后来决定放弃 TUN，改用更稳定的显式代理架构：</p>
+
+                <ul>
+                    <li>SOCKS5: 127.0.0.1:1080</li>
+                    <li>HTTP: 127.0.0.1:1081</li>
+                </ul>
+
+                <p>这个选择反而更适合当前项目。</p>
+
+                <p>因为 Jetson 上真正需要代理的主要是：</p>
+
+                <ul>
+                    <li>Codex</li>
+                    <li>未来云端 API</li>
+                    <li>未来联网 Agent</li>
+                </ul>
+
+                <p>而本地 Gemma、localhost 服务、Tailscale 等并不需要代理。</p>
+
+                <p>所以最终架构是：</p>
+
+<pre><code>需要访问外部 AI API 的程序
+↓
+127.0.0.1:1080 / 1081
+↓
+sing-box
+↓
+加拿大 / 美国节点
+↓
+目标服务</code></pre>
+
+                <p>这比全局透明代理更可控，也更容易排查问题。</p>
+
+                <hr>
+
+                <h2>十一、限制节点为加拿大 / 美国</h2>
+
+                <p>订阅里节点很多，包括多个地区。</p>
+
+                <p>但对 AI 服务来说，我更希望使用加拿大 / 美国出口。</p>
+
+                <p>原因是部分 AI 服务、模型功能、账号风控和地区支持可能与地区有关。</p>
+
+                <p>所以最终配置为：</p>
+
+                <ul>
+                    <li>加拿大节点优先</li>
+                    <li>美国节点备用</li>
+                    <li>香港、台湾、日本、韩国、新加坡等节点不参与自动选择</li>
+                </ul>
+
+                <p>这样可以减少因为出口地区导致的奇怪兼容问题。</p>
+
+                <hr>
+
+                <h2>十二、sing-box systemd 化</h2>
+
+                <p>sing-box 配置完成后，也交给 systemd 管理。</p>
+
+                <p>现在 sing-box 已经实现：</p>
+
+                <ul>
+                    <li>systemd 管理</li>
+                    <li>开机自启</li>
+                    <li>断电恢复</li>
+                    <li>SOCKS5 / HTTP 代理端口可用</li>
+                    <li>加拿大 / 美国节点池</li>
+                    <li>与 Tailscale 不冲突</li>
+                    <li>与 local-gemma-agent 不冲突</li>
+                </ul>
+
+                <p>这样 Jetson 重启后，不需要手动启动代理服务。</p>
+
+                <hr>
+
+                <h2>十三、模型切换</h2>
+
+                <p>当前默认模型仍然是 <span class="highlight-blue">MiniMax-M2.7</span>。</p>
+
+                <p>因为它是订阅制，不是按 token 付费，所以没有必要为了省钱强行默认切本地模型。</p>
+
+                <p>但我希望 Gemma 能作为可切换模型存在。</p>
+
+                <p>现在已经把 local_gemma 注册到了 Hermes 配置里。</p>
+
+                <p>目标是实现：</p>
+
+                <ul>
+                    <li>默认继续用 MiniMax</li>
+                    <li>需要离线 / 本地测试时切到 Gemma</li>
+                    <li>复杂 coding 任务用 Codex</li>
+                    <li>未来再接入更多模型</li>
+                </ul>
+
+                <p>当前模型结构大概是：</p>
+
+<pre><code>Melody + MiniMax = 默认云端强脑
+Melody + Gemma = 本地离线脑
+Melody + Codex = 代码专家</code></pre>
+
+                <hr>
+
+                <h2>十四、当前系统架构</h2>
+
+                <p>目前 Jetson Orin Nano 上已经有：</p>
+
+<pre><code>Jetson Orin Nano
+├── Tailscale
+├── sing-box
+│   ├── SOCKS5: 127.0.0.1:1080
+│   └── HTTP: 127.0.0.1:1081
+├── llama.cpp
+├── Gemma 4 E2B
+├── local-gemma-agent
+│   └── http://127.0.0.1:18080/v1
+├── Hermes / Melody
+├── Codex Coding Agent
+└── MiniMax-M2.7</code></pre>
+
+                <p>已经 systemd 化并开机自启的服务：</p>
+
+                <ul>
+                    <li>Tailscale</li>
+                    <li>sing-box</li>
+                    <li>local-gemma-agent</li>
+                </ul>
+
+                <p>暂时没有 systemd 化的：</p>
+
+                <ul>
+                    <li>Hermes / Melody</li>
+                </ul>
+
+                <p>原因是 Melody 本身是控制者。如果现在让她修改自己的启动方式，风险比较高。所以 Hermes/Melody 服务化会放到后面单独处理，并且要有备份、dry-run 和回滚方案。</p>
+
+                <hr>
+
+                <h2>十五、为什么这次不急着让 Hermes 自启</h2>
+
+                <p>这是一个很重要的决定。</p>
+
+                <p>sing-box、Gemma、Tailscale 都是"外部服务"。它们坏了，可以由 Melody 帮忙排查。</p>
+
+                <p>但 Hermes / Melody 是当前的控制者。如果让它自己修改自己的 systemd service，万一写错：</p>
+
+                <blockquote>Melody 启动失败<br>↓<br>控制者消失<br>↓<br>只能人工 SSH 救火</blockquote>
+
+                <p>所以更稳妥的顺序是：</p>
+
+                <ol>
+                    <li>先把网络、代理、本地模型服务化</li>
+                    <li>确认断电恢复没问题</li>
+                    <li>最后再单独设计 Hermes / Melody 自启</li>
+                    <li>必须有备份和回滚方案</li>
+                </ol>
+
+                <p>目前这个决定让系统更安全。</p>
+
+                <hr>
+
+                <h2>十六、目前完成度</h2>
+
+                <p>已经完成：</p>
+
+                <ul>
+                    <li>系统清理</li>
+                    <li>模型迁移</li>
+                    <li>apt / dpkg 修复</li>
+                    <li>llama.cpp CUDA 编译</li>
+                    <li>本地 Gemma 服务</li>
+                    <li>GPU 加速</li>
+                    <li>local-gemma-agent systemd 化</li>
+                    <li>Codex 登录与验证</li>
+                    <li>Melody SOUL 文件</li>
+                    <li>sing-box 安装与配置</li>
+                    <li>加拿大 / 美国节点筛选</li>
+                    <li>sing-box systemd 化</li>
+                    <li>Tailscale 保持自启</li>
+                </ul>
+
+                <p>当前整体状态：</p>
+
+<pre><code>系统层：稳定
+网络层：稳定
+代理层：稳定
+本地模型：稳定
+Codex：可用
+Melody：可用
+Hermes 自启：暂缓</code></pre>
+
+                <hr>
+
+                <h2>下一阶段计划</h2>
+
+                <p>接下来会进入更有趣的阶段。</p>
+
+                <h3>1. 摄像头接入</h3>
+
+                <p>目标：</p>
+
+                <ul>
+                    <li>接 USB / CSI 摄像头</li>
+                    <li>验证 Linux 能否识别</li>
+                    <li>测试图像采集</li>
+                    <li>后续接入视觉模型</li>
+                </ul>
+
+                <h3>2. Whisper 本地语音识别</h3>
+
+                <p>目标：</p>
+
+                <ul>
+                    <li>接麦克风</li>
+                    <li>本地语音转文字</li>
+                    <li>中英文识别</li>
+                    <li>低延迟输入</li>
+                </ul>
+
+                <h3>3. 语音唤醒</h3>
+
+                <p>目标：</p>
+
+                <ul>
+                    <li>不需要一直打字</li>
+                    <li>可以用唤醒词启动 Melody</li>
+                    <li>后续配合 TTS 输出</li>
+                </ul>
+
+                <h3>4. Agent Router</h3>
+
+                <p>目标：</p>
+
+                <p>让 Melody 自动判断：</p>
+
+                <ul>
+                    <li>简单问题 → Gemma</li>
+                    <li>复杂分析 → MiniMax</li>
+                    <li>编程任务 → Codex</li>
+                    <li>视觉任务 → Vision Agent</li>
+                </ul>
+
+                <h3>5. Hermes / Melody 服务化</h3>
+
+                <p>最后再做 Melody 自启。</p>
+
+                <p>这一步必须谨慎，因为它涉及主控制 Agent 本身。</p>
+
+                <hr>
+
+                <h2>总结</h2>
+
+                <p>这次折腾下来，我最大的感觉是：</p>
+
+                <p><strong>搭建本地 AI 助手不是"跑一个模型"这么简单。</strong></p>
+
+                <p>真正麻烦的是：</p>
+
+                <ul>
+                    <li>模型在哪里</li>
+                    <li>服务怎么启动</li>
+                    <li>网络怎么走</li>
+                    <li>断电后怎么恢复</li>
+                    <li>哪些东西应该本地</li>
+                    <li>哪些东西应该云端</li>
+                    <li>哪些服务该自启</li>
+                    <li>哪些服务不该急着自启</li>
+                </ul>
+
+                <p>现在 Jetson 已经不再只是一个开发板，而是一个初步成型的本地 AI 小主机。</p>
+
+                <p>它已经具备：</p>
+
+                <ul>
+                    <li>本地模型</li>
+                    <li>云端 coding agent</li>
+                    <li>独立代理出口</li>
+                    <li>开机自启服务</li>
+                    <li>统一人格 Melody</li>
+                    <li>后续语音 / 视觉扩展基础</li>
+                </ul>
+
+                <p>接下来终于可以从"基础设施搭建"进入"真正好玩的 AI 交互"阶段了。</p>
+            </div>
+        </article>
+    </div>
+</body>
+</html>
