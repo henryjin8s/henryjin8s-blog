@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 Jetson Local AI Agent Phase 1：从能跑模型到可维护的本地 AI 节点</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card-bg: #161b22;
+            --text: #e6edf3;
+            --text-light: #8b949e;
+            --accent: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-purple: #bc8cff;
+            --accent-orange: #f0883e;
+            --accent-pink: #f778ba;
+            --border: #30363d;
+            --code-bg: #1c2128;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.7; font-size: 16px; }
+        .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+        .back-btn { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); text-decoration: none; font-size: 14px; margin-bottom: 30px; transition: opacity 0.2s; }
+        .back-btn:hover { opacity: 0.7; }
+        .post-header { margin-bottom: 40px; }
+        .post-title { font-size: 28px; font-weight: 700; color: var(--text); margin-bottom: 15px; line-height: 1.3; }
+        .post-meta { display: flex; gap: 15px; font-size: 13px; color: var(--text-light); flex-wrap: wrap; }
+        .post-meta span { display: flex; align-items: center; gap: 4px; }
+        .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+        .tag { background: rgba(88,166,255,0.15); color: var(--accent); padding: 3px 10px; border-radius: 20px; font-size: 12px; }
+        .post-content { line-height: 1.8; }
+        .post-content h2 { font-size: 20px; font-weight: 600; color: var(--accent); margin: 40px 0 15px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+        .post-content h3 { font-size: 16px; font-weight: 600; color: var(--text); margin: 25px 0 10px; }
+        .post-content p { margin-bottom: 15px; color: var(--text); }
+        .post-content strong { color: var(--accent-orange); }
+        .post-content em { color: var(--accent-pink); font-style: italic; }
+        .post-content ul, .post-content ol { margin: 15px 0 15px 25px; }
+        .post-content li { margin-bottom: 8px; color: var(--text); }
+        .post-content blockquote { border-left: 3px solid var(--accent); padding: 10px 15px; margin: 20px 0; background: var(--card-bg); border-radius: 0 8px 8px 0; color: var(--text-light); font-style: italic; }
+        .post-content pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 20px 0; overflow-x: auto; font-size: 14px; line-height: 1.6; }
+        .post-content code { font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, Monaco, monospace; }
+        .post-content pre code { color: var(--text); background: none; padding: 0; border: none; font-size: 13px; }
+        .post-content p code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 14px; color: var(--accent-green); }
+        .post-content a { color: var(--accent); text-decoration: none; }
+        .post-content a:hover { text-decoration: underline; }
+        .post-content hr { border: none; border-top: 1px solid var(--border); margin: 30px 0; }
+        .highlight-green { color: var(--accent-green); font-weight: 600; }
+        .highlight-blue { color: var(--accent); font-weight: 600; }
+        .highlight-purple { color: var(--accent-purple); font-weight: 600; }
+        .highlight-orange { color: var(--accent-orange); font-weight: 600; }
+        .highlight-pink { color: var(--accent-pink); font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/posts/" class="back-btn">← Back to Blog</a>
+        <article>
+            <div class="post-header">
+                <h1 class="post-title">🤖 Jetson Local AI Agent Phase 1：从能跑模型到可维护的本地 AI 节点</h1>
+                <div class="post-meta">
+                    <span>📅 June 10, 2026</span>
+                    <span>⏱️ 22 min read</span>
+                </div>
+                <div class="tags">
+                    <span class="tag">Jetson</span>
+                    <span class="tag">Local AI</span>
+                    <span class="tag">Gemma</span>
+                    <span class="tag">Codex</span>
+                    <span class="tag">Melody</span>
+                    <span class="tag">systemd</span>
+                    <span class="tag">Home Lab</span>
+                </div>
+            </div>
+            <div class="post-content">
+                <p>上一篇里，我把 Jetson Orin Nano 从一块刚整理好的开发板，初步搭成了一个本地 AI 小主机。</p>
+
+                <p>当时已经完成了几个关键基础设施：</p>
+
+                <ul>
+                    <li>本地 Gemma 模型</li>
+                    <li>llama.cpp CUDA 编译</li>
+                    <li>本地模型服务化</li>
+                    <li>代理出口</li>
+                    <li>远程访问</li>
+                    <li>Hermes / Melody 作为主 Agent</li>
+                    <li>Codex Coding Agent 初步接入</li>
+                </ul>
+
+                <p>但是那时候严格来说，它还只是处在"基础设施搭起来了"的阶段。</p>
+
+                <p>能跑，不代表好用。</p>
+
+                <p>好用，还需要继续解决几个问题：</p>
+
+                <ul>
+                    <li>本地模型上下文是不是够用</li>
+                    <li>Hermes 能不能稳定切换到本地模型</li>
+                    <li>Codex 能不能真正作为 Jetson 上的 coding agent 使用</li>
+                    <li>网络出口是不是稳定可靠</li>
+                    <li>服务状态能不能被 Agent 正确检查</li>
+                    <li>系统有没有留下可维护的 baseline 文档</li>
+                </ul>
+
+                <p>这次继续折腾以后，我觉得 Jetson Local AI Agent 的 <span class="highlight-blue">Phase 1 可以正式标记完成了</span>。</p>
+
+                <hr>
+
+                <h2>一，先把 Gemma 的上下文问题解决掉</h2>
+
+                <p>之前本地 Gemma 服务虽然已经可以跑，但有一个明显问题：</p>
+
+                <p>在 Hermes 里切到本地 Gemma 后，会发现上下文只有 4096 tokens。</p>
+
+                <p>这对一个本地 fallback 模型来说太小了。</p>
+
+                <p>简单聊天没问题，但只要涉及：</p>
+
+                <ul>
+                    <li>系统检查</li>
+                    <li>多轮排查</li>
+                    <li>日志分析</li>
+                    <li>工具调用</li>
+                    <li>Hermes 自己的系统提示词</li>
+                </ul>
+
+                <p>4096 tokens 很快就会不够。</p>
+
+                <p>后来继续排查发现，Gemma GGUF 模型本身并不是只能支持 4096。真正限制它的是本地模型服务启动时的 context 参数。</p>
+
+                <p>也就是说：</p>
+
+                <blockquote>模型有更长上下文能力，但服务启动参数把它限制住了。</blockquote>
+
+                <p>最后我把本地 Gemma 服务的日常上下文调到了：</p>
+
+<pre><code>65536 tokens</code></pre>
+
+                <p>这个数字不是越大越好，而是一个平衡点。</p>
+
+                <p>我也测试过更大的上下文。它确实能跑，但在 Jetson Orin Nano 8GB 上会明显增加内存压力，响应也会变慢。</p>
+
+                <p>最后选择 65K，是因为它比较适合作为日常本地 fallback：</p>
+
+                <ul>
+                    <li>比 4K 宽裕很多</li>
+                    <li>不会像更大上下文那样压力太大</li>
+                    <li>Hermes 切换后能正确识别上下文</li>
+                    <li>本地系统检查和中短任务已经够用</li>
+                </ul>
+
+                <p>现在切到本地 Gemma 后，Hermes 可以正确显示约 65K 的上下文。</p>
+
+                <p>这一步很重要。</p>
+
+                <p>因为 Gemma 不再只是"能跑一句 hello"，而是真正可以成为 Hermes 里的本地模型选项。</p>
+
+                <hr>
+
+                <h2>二，Hermes 里的模型切换终于顺了</h2>
+
+                <p>现在 Hermes / Melody 的模型结构基本变成了：</p>
+
+<pre><code>MiniMax = 默认云端主力模型
+Gemma = 本地离线 / 低风险系统检查模型
+Codex = Coding Agent</code></pre>
+
+                <p>默认还是 MiniMax。</p>
+
+                <p>原因很简单：</p>
+
+                <p>MiniMax 上下文更大，适合长对话、复杂分析和日常主控。</p>
+
+                <p>Gemma 则更适合：</p>
+
+                <ul>
+                    <li>本地检查</li>
+                    <li>离线兜底</li>
+                    <li>简单系统状态判断</li>
+                    <li>不想调用云端模型时使用</li>
+                </ul>
+
+                <p>这次真正解决的是本地模型切换体验。</p>
+
+                <p>之前虽然本地 Gemma provider 已经注册进 Hermes，但 alias、context length、compression 配置之间有一些不一致。修完之后，Hermes 现在可以比较自然地在云端主力模型和本地模型之间切换。</p>
+
+                <p>对我来说，这个意义不只是"多了一个模型"。</p>
+
+                <p>更重要的是，Melody 开始变成一个统一入口：</p>
+
+<pre><code>同一个 Agent 人格
+不同模型后端
+不同任务分工</code></pre>
+
+                <p>也就是说，我不用把每个模型都当成一个完全不同的助手。</p>
+
+                <p><span class="highlight-pink">Melody 是统一的交互层，底层能力可以根据任务切换。</span></p>
+
+                <hr>
+
+                <h2>三，Gemma 通过了基础系统检查测试</h2>
+
+                <p>调好上下文之后，我让 Gemma 做了一些低风险测试。</p>
+
+                <p>一开始它也犯了一个很典型的错误：用简单的进程名匹配来判断服务是否存在。</p>
+
+                <p>这类方法容易误判，因为 systemd 服务名、实际进程名、启动脚本名不一定一致。</p>
+
+                <p>后来我明确要求它用更可靠的方式检查：</p>
+
+                <ul>
+                    <li>systemd 服务状态</li>
+                    <li>本地端口监听</li>
+                    <li>关键进程摘要</li>
+                    <li>HTTP endpoint 健康检查</li>
+                </ul>
+
+                <p>之后它能正确判断：</p>
+
+                <ul>
+                    <li>本地模型服务处于 active 状态</li>
+                    <li>代理服务处于 active 状态</li>
+                    <li>远程访问服务处于 active 状态</li>
+                    <li>关键本地端口正常监听</li>
+                </ul>
+
+                <p>这个测试让我对 Gemma 的定位更清晰了。</p>
+
+                <p>它不是用来完全替代云端模型的，也不是拿来做复杂代码改造的。</p>
+
+                <p>它更适合做：</p>
+
+<pre><code>本地、小范围、低风险、只读检查</code></pre>
+
+                <p>只要 prompt 写清楚"不使用 sudo、不修改配置、不重启服务"，它已经可以承担一部分本地运维辅助工作。</p>
+
+                <hr>
+
+                <h2>四，网络出口和 DNS 问题修复</h2>
+
+                <p>这次另一个大坑是 Codex 的网络问题。</p>
+
+                <p>一开始 Codex wrapper 已经做好了，命令也能运行。</p>
+
+                <p>但是实际启动 Codex 时，会遇到 cloud config timeout 或者后端连接失败。</p>
+
+                <p>一开始看起来像是 Codex 自己的问题，后来继续查才发现，真正的问题在代理服务的 DNS 解析链路。</p>
+
+                <p>代理服务本身是 active，本地代理端口也在监听。</p>
+
+                <p>但是这不代表网络真的通。</p>
+
+                <p>问题出在部分海外域名的 DNS 请求会超时，于是应用层看起来就像是 Codex 连接不上后端。</p>
+
+                <p>最后采用的修复思路是：</p>
+
+<pre><code>国内 / 默认 DNS：使用更稳定的国内 DNS
+国外 DNS：仍然使用海外 DNS，但通过代理出口访问</code></pre>
+
+                <p>这样做的好处是：</p>
+
+                <ul>
+                    <li>国内解析不用绕远路</li>
+                    <li>国外域名仍然可以使用更合适的海外 DNS</li>
+                    <li>海外 DNS 不再直连容易超时的链路</li>
+                    <li>Codex 的后端连接恢复正常</li>
+                    <li>不需要改节点</li>
+                    <li>不需要改订阅</li>
+                    <li>不需要动代理入口和出口结构</li>
+                </ul>
+
+                <p>修改后重新检查：</p>
+
+                <ul>
+                    <li>配置检查通过</li>
+                    <li>服务重启后 active</li>
+                    <li>本地代理端口正常</li>
+                    <li>ChatGPT 后端接口可以连通</li>
+                    <li>Codex help 正常输出</li>
+                </ul>
+
+                <p>这一步之后，Jetson 的网络出口才算真正稳定可用。</p>
+
+                <p>这次也提醒我一个很重要的点：</p>
+
+                <blockquote>端口在监听，不代表网络真的通；服务 active，不代表应用一定能连上后端。</blockquote>
+
+                <p>以后排查这类问题，需要同时看：</p>
+
+                <ul>
+                    <li>systemd 状态</li>
+                    <li>端口监听</li>
+                    <li>DNS 解析</li>
+                    <li>代理链路</li>
+                    <li>后端响应</li>
+                    <li>实际应用行为</li>
+                </ul>
+
+                <hr>
+
+                <h2>五，Codex wrapper 和登录问题最终解决</h2>
+
+                <p>Codex 这条线也折腾了不少。</p>
+
+                <p>一开始的问题是 Jetson 上没有直接的 <code>codex</code> 命令。Codex CLI 实际安装在另一个 node 环境下面，所以后来我给它做了一个 wrapper。</p>
+
+                <p>这个 wrapper 做了几件事：</p>
+
+                <ul>
+                    <li>指定 Codex 的实际 CLI 路径</li>
+                    <li>指定独立的 Codex 配置目录</li>
+                    <li>注入代理环境变量</li>
+                    <li>让 Jetson 上可以直接运行 <code>codex</code></li>
+                </ul>
+
+                <p>之后 Codex 的版本检查和帮助命令都正常了。</p>
+
+                <p>但登录又遇到 refresh token 问题。</p>
+
+                <p>这个问题本质上不是网络，也不是 wrapper，而是本地 auth token 失效。</p>
+
+                <p>最后还是用了比较实际的办法：</p>
+
+                <ul>
+                    <li>在另一台设备上完成 Codex 登录</li>
+                    <li>将新的认证文件同步到 Jetson 的独立 Codex 配置目录</li>
+                    <li>Jetson 上继续通过 wrapper 使用 Codex</li>
+                </ul>
+
+                <p>完成后，Codex 可以正常进入交互界面，也能读取系统信息。</p>
+
+                <p>这一步很关键。</p>
+
+                <p>因为从这里开始，Codex 不再只是"装好了"，而是可以真正成为 Jetson 上的 coding agent。</p>
+
+                <hr>
+
+                <h2>六，Codex 通过了低风险验收测试</h2>
+
+                <p>我没有一上来就让 Codex 改真实项目。先做了几个低风险测试。</p>
+
+                <h3>第一个是只读系统总结</h3>
+
+                <p>Codex 正确识别了：</p>
+
+                <ul>
+                    <li>Ubuntu 22.04 LTS</li>
+                    <li>ARM64 / aarch64</li>
+                    <li>Tegra kernel</li>
+                    <li>ARM Cortex-A78AE CPU</li>
+                    <li>约 8GB 级别内存</li>
+                    <li>NVMe root disk</li>
+                    <li>CUDA 12.6</li>
+                    <li>Python / Node / npm / git / ripgrep 等工具</li>
+                </ul>
+
+                <p>它还指出 <code>nvidia-smi</code> 无法通信。</p>
+
+                <p>这个在 Jetson 上并不一定说明 GPU 不可用，因为 Jetson 不是普通桌面 NVIDIA GPU 环境。对 Jetson 来说，更常用的是 <code>tegrastats</code> 或 jtop。之前 llama.cpp 已经能 CUDA offload，Gemma 也能通过 GPU 跑起来，所以这里不算 blocker。</p>
+
+                <h3>第二个是只读服务检查</h3>
+
+                <p>Codex 正确确认：</p>
+
+                <ul>
+                    <li>本地模型服务 active / enabled</li>
+                    <li>代理服务 active / enabled</li>
+                    <li>远程访问服务 active / enabled</li>
+                    <li>本地模型 API 端口正常监听</li>
+                    <li>本地代理端口正常监听</li>
+                </ul>
+
+                <p>并且它没有：</p>
+
+                <ul>
+                    <li>使用 sudo</li>
+                    <li>重启服务</li>
+                    <li>修改配置</li>
+                    <li>写入系统文件</li>
+                </ul>
+
+                <p>这说明 Codex 至少已经具备了基本的安全协作能力。</p>
+
+                <hr>
+
+                <h2>七，给 Codex 建立自己的工作区</h2>
+
+                <p>我不想让 Codex 直接在 home 目录或者某个不确定的 current directory 里乱创建文件。</p>
+
+                <p>所以给它明确了一个自己的工作目录。</p>
+
+                <p>之后第一个正式输出是一份 Jetson baseline 文档。</p>
+
+                <p>这份 baseline 文档记录了当前 Jetson 的状态，包括：</p>
+
+                <ul>
+                    <li>OS / kernel</li>
+                    <li>CPU / RAM / storage</li>
+                    <li>CUDA / Jetson GPU notes</li>
+                    <li>本地模型服务状态</li>
+                    <li>代理服务状态</li>
+                    <li>远程访问状态</li>
+                    <li>Codex CLI 状态</li>
+                    <li>已知注意事项</li>
+                </ul>
+
+                <p>这个文件的意义不是内容多复杂，而是它给整个系统留下了一个"当前可用状态"的快照。</p>
+
+                <p>以后如果系统坏了、服务起不来、模型变慢、代理异常，就可以回头对比这个 baseline。</p>
+
+                <p>更重要的是，这次 Codex 严格遵守了边界：</p>
+
+<pre><code>只在指定目录创建文件
+不使用 sudo
+不重启服务
+不修改系统配置</code></pre>
+
+                <p>这让我可以更放心地把它用于后续代码和文档任务。</p>
+
+                <hr>
+
+                <h2>八，当前系统状态</h2>
+
+                <p>现在 Jetson 上已经形成了比较清晰的分工：</p>
+
+<pre><code>Jetson Orin Nano
+├── Remote Access
+│   └── 远程访问
+├── Proxy Service
+│   └── 本地代理出口
+├── Local Model Service
+│   └── 本地 OpenAI-compatible API
+├── Gemma
+│   └── 本地模型 / 65K context
+├── Hermes / Melody
+│   └── 主 Agent / 模型切换 / 统一入口
+├── MiniMax
+│   └── 默认云端主力模型
+└── Codex
+    └── Coding Agent / 文件与代码任务</code></pre>
+
+                <p>systemd 管理的服务包括：</p>
+
+<pre><code>本地模型服务
+代理服务
+远程访问服务</code></pre>
+
+                <p>暂时没有 systemd 化的是：</p>
+
+<pre><code>Hermes / Melody
+Codex</code></pre>
+
+                <p>这里还是保持之前的判断：Hermes / Melody 是主控制层，不急着自启。</p>
+
+                <p>等后续要做 systemd 化时，必须单独设计：</p>
+
+                <ul>
+                    <li>dry-run</li>
+                    <li>日志路径</li>
+                    <li>环境变量</li>
+                    <li>启动失败回滚</li>
+                    <li>人工 SSH 救援方案</li>
+                </ul>
+
+                <hr>
+
+                <h2>九，这次学到的几个经验</h2>
+
+                <p>这次最大的感受是：Agent 系统不是"装几个模型"这么简单。</p>
+
+                <p>真正难的是服务之间的边界。</p>
+
+                <h3>1. 模型能跑，不代表 Agent 好用</h3>
+
+                <p>Gemma 一开始能回答问题，但上下文只有 4K。</p>
+
+                <p>在 Hermes 这种系统里，4K 很快就不够。只有把上下文、provider、alias、compression 等配置都理顺，它才真正可用。</p>
+
+                <h3>2. 端口在监听，不代表网络真的通</h3>
+
+                <p>代理服务的本地端口一直在监听，但 DNS 超时照样会让 Codex 失败。</p>
+
+                <p>所以排查网络不能只看 service active，还要看：</p>
+
+                <ul>
+                    <li>DNS</li>
+                    <li>proxy detour</li>
+                    <li>backend response</li>
+                    <li>实际应用行为</li>
+                </ul>
+
+                <h3>3. Codex 能启动，不代表 auth 没问题</h3>
+
+                <p>Codex UI 能打开，但 token refresh 可能已经坏了。</p>
+
+                <p>这类问题和网络问题很像，但本质完全不同。最后还是要区分：</p>
+
+<pre><code>网络超时
+代理错误
+DNS 问题
+OAuth token 问题</code></pre>
+
+                <h3>4. Agent 必须有工作边界</h3>
+
+                <p>让 Codex "在当前目录创建文件"不够安全。</p>
+
+                <p>更好的方式是直接指定：</p>
+
+                <blockquote>只允许修改某个专用工作区</blockquote>
+
+                <p>这比依赖 current directory 稳很多。</p>
+
+                <h3>5. 本地 AI 节点需要 baseline</h3>
+
+                <p>很多 home lab 项目搭完之后，最大的问题不是当下不能用，而是过几天以后忘了自己改过什么。</p>
+
+                <p>这次 baseline 文档很重要，因为它记录了一个"此刻系统是好的"的状态。</p>
+
+                <p>以后排查问题时，至少知道应该回到什么基准线。</p>
+
+                <hr>
+
+                <h2>十，Phase 1 完成</h2>
+
+                <p>到这里，我觉得 Jetson Local AI Agent Phase 1 可以正式标记完成。</p>
+
+                <p>当前已经完成：</p>
+
+                <ul>
+                    <li>本地 Gemma 服务可用</li>
+                    <li>Gemma context 调整到 65K</li>
+                    <li>Hermes 可以切换到 Gemma</li>
+                    <li>MiniMax 继续作为默认主力模型</li>
+                    <li>代理 DNS 问题修复</li>
+                    <li>Codex wrapper 可用</li>
+                    <li>Codex auth 修复</li>
+                    <li>Codex 通过只读系统检查</li>
+                    <li>Codex 能在指定工作区创建 baseline 文档</li>
+                    <li>核心后台服务已 systemd 化</li>
+                    <li>Jetson 具备独立网络出口和本地模型服务能力</li>
+                </ul>
+
+                <p>现在它已经不只是：</p>
+
+                <blockquote>一个能跑模型的 Jetson</blockquote>
+
+                <p>而是更接近：</p>
+
+                <blockquote>一个可以被 Agent 管理、检查、扩展的本地 AI 节点</blockquote>
+
+                <hr>
+
+                <h2>下一阶段计划</h2>
+
+                <p>接下来我准备从基础设施搭建，进入真正的应用层。</p>
+
+                <h3>1. Home Lab 控制中心</h3>
+
+                <p>把 Jetson、树莓派、NAS、服务状态、网络状态做成一个 dashboard。</p>
+
+                <p>目标是能一眼看到：</p>
+
+                <ul>
+                    <li>哪些服务在线</li>
+                    <li>哪些端口正常</li>
+                    <li>哪些设备可达</li>
+                    <li>哪些容器 / systemd 服务异常</li>
+                    <li>本地 AI 服务是否健康</li>
+                </ul>
+
+                <p>这个方向最适合接在当前阶段后面，因为现在 Codex 和 Gemma 都已经具备基础检查能力。</p>
+
+                <h3>2. Agent Inventory</h3>
+
+                <p>让 Codex 只读扫描 agents 目录，生成一份 agent inventory 文档。</p>
+
+                <p>目标是把每个 agent 的：</p>
+
+                <ul>
+                    <li>启动脚本</li>
+                    <li>配置路径</li>
+                    <li>服务名</li>
+                    <li>端口</li>
+                    <li>模型依赖</li>
+                    <li>注意事项</li>
+                </ul>
+
+                <p>整理出来。</p>
+
+                <p>这个不是必须马上做，但对长期维护很有帮助。</p>
+
+                <h3>3. 视觉识别</h3>
+
+                <p>后面会接摄像头，让 Jetson 开始做视觉输入。</p>
+
+                <p>这可能会涉及：</p>
+
+                <ul>
+                    <li>USB / CSI 摄像头</li>
+                    <li>图像采集</li>
+                    <li>轻量视觉模型</li>
+                    <li>本地事件检测</li>
+                    <li>Home Lab / Smart Home 联动</li>
+                </ul>
+
+                <h3>4. 语音输入</h3>
+
+                <p>另一个方向是接麦克风和 Whisper，让 Melody 可以通过语音输入工作。</p>
+
+                <p>目标是以后不用每次 SSH / 打字，而是可以更自然地和本地 Agent 交互。</p>
+
+                <hr>
+
+                <h2>总结</h2>
+
+                <p>这次 Phase 1 最大的收获是：</p>
+
+                <p><strong>本地 AI 小主机的核心不是模型，而是可维护的系统边界。</strong></p>
+
+                <p>模型只是其中一部分。</p>
+
+                <p>真正让它变得可用的是：</p>
+
+                <ul>
+                    <li>服务化</li>
+                    <li>网络出口</li>
+                    <li>模型切换</li>
+                    <li>上下文配置</li>
+                    <li>只读检查能力</li>
+                    <li>Codex 工作区边界</li>
+                    <li>baseline 文档</li>
+                    <li>回滚意识</li>
+                </ul>
+
+                <p>现在 Jetson 已经具备了一个本地 AI 节点该有的基础能力。</p>
+
+                <p>下一步，就可以开始把它接入更实际的 home lab 场景了。</p>
+            </div>
+        </article>
+    </div>
+</body>
+</html>
