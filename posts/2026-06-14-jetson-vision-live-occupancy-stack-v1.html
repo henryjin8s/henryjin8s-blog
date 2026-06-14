@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📷 Jetson Orin Nano 本地视觉占用检测原型：从 USB 摄像头到实时 Dashboard</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card-bg: #161b22;
+            --text: #e6edf3;
+            --text-light: #8b949e;
+            --accent: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-purple: #bc8cff;
+            --accent-orange: #f0883e;
+            --accent-pink: #f778ba;
+            --border: #30363d;
+            --code-bg: #1c2128;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.7; font-size: 16px; }
+        .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+        .back-btn { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); text-decoration: none; font-size: 14px; margin-bottom: 30px; transition: opacity 0.2s; }
+        .back-btn:hover { opacity: 0.7; }
+        .post-header { margin-bottom: 40px; }
+        .post-title { font-size: 28px; font-weight: 700; color: var(--text); margin-bottom: 15px; line-height: 1.3; }
+        .post-meta { display: flex; gap: 15px; font-size: 13px; color: var(--text-light); flex-wrap: wrap; }
+        .post-meta span { display: flex; align-items: center; gap: 4px; }
+        .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+        .tag { background: rgba(88,166,255,0.15); color: var(--accent); padding: 3px 10px; border-radius: 20px; font-size: 12px; }
+        .post-content { line-height: 1.8; }
+        .post-content h2 { font-size: 20px; font-weight: 600; color: var(--accent); margin: 40px 0 15px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+        .post-content h3 { font-size: 16px; font-weight: 600; color: var(--text); margin: 25px 0 10px; }
+        .post-content p { margin-bottom: 15px; color: var(--text); }
+        .post-content strong { color: var(--accent-orange); }
+        .post-content em { color: var(--accent-pink); font-style: italic; }
+        .post-content ul, .post-content ol { margin: 15px 0 15px 25px; }
+        .post-content li { margin-bottom: 8px; color: var(--text); }
+        .post-content blockquote { border-left: 3px solid var(--accent); padding: 10px 15px; margin: 20px 0; background: var(--card-bg); border-radius: 0 8px 8px 0; color: var(--text-light); font-style: italic; }
+        .post-content pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 20px 0; overflow-x: auto; font-size: 14px; line-height: 1.6; }
+        .post-content code { font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, Monaco, monospace; }
+        .post-content pre code { color: var(--text); background: none; padding: 0; border: none; font-size: 13px; }
+        .post-content p code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 14px; color: var(--accent-green); }
+        .post-content a { color: var(--accent); text-decoration: none; }
+        .post-content a:hover { text-decoration: underline; }
+        .post-content hr { border: none; border-top: 1px solid var(--border); margin: 30px 0; }
+        .highlight-green { color: var(--accent-green); font-weight: 600; }
+        .highlight-blue { color: var(--accent); font-weight: 600; }
+        .highlight-purple { color: var(--accent-purple); font-weight: 600; }
+        .highlight-orange { color: var(--accent-orange); font-weight: 600; }
+        .highlight-pink { color: var(--accent-pink); font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/posts/" class="back-btn">← Back to Blog</a>
+        <article>
+            <div class="post-header">
+                <h1 class="post-title">📷 Jetson Orin Nano 本地视觉占用检测原型：从 USB 摄像头到实时 Dashboard</h1>
+                <div class="post-meta">
+                    <span>📅 June 14, 2026</span>
+                    <span>⏱️ 22 min read</span>
+                </div>
+                <div class="tags">
+                    <span class="tag">Jetson</span>
+                    <span class="tag">Vision</span>
+                    <span class="tag">YOLO</span>
+                    <span class="tag">OpenCV</span>
+                    <span class="tag">Flask</span>
+                    <span class="tag">Home Lab</span>
+                </div>
+            </div>
+            <div class="post-content">
+                <p>最近我把 Jetson Orin Nano 上的本地视觉项目推进到了一个可以阶段性收尾的状态。这个项目的目标很简单：让一台 Jetson 通过 USB 摄像头在本地完成"是否有人在画面中"的检测，并把结果以实时 Dashboard 的形式展示出来。</p>
+
+                <p>这不是一个云端视觉识别项目，也不是人脸识别项目。整个系统只做 <span class="highlight-blue">person class detection</span>，也就是判断画面里是否存在"人"这一类目标，并基于简单 tracking 估算当前画面中的占用情况。它不会识别具体是谁，也不会做人脸、身份、姓名或个人特征判断。</p>
+
+                <p>最终结果是一个本地可运行的 <span class="highlight-green">Jetson Vision Live Occupancy Stack v1.0</span>：</p>
+
+<pre><code>USB 摄像头输入
+→ OpenCV 取流
+→ YOLOv8n 人物检测
+→ person-only detection
+→ tuned person tracker
+→ ENTER / EXIT event
+→ occupancy_status.json
+→ Flask dashboard
+→ SSH tunnel 远程查看
+→ hardened live stack
+→ 10 分钟稳定性测试 PASS
+→ 30 分钟稳定性测试 PASS</code></pre>
+
+                <p>这篇文章记录一下这个 v1.0 是怎么一步步做出来的，以及最后为什么我认为它已经可以作为一个本地视觉占用检测原型来使用。</p>
+
+                <hr>
+
+                <h2>1. 项目目标：不是"识别是谁"，而是"有没有人"</h2>
+
+                <p>一开始做这个项目的时候，我并不想马上做复杂的视觉 AI，例如人脸识别、OCR、行为分析或多摄像头管理。那些方向当然都可以继续扩展，但对于第一版来说，我更想要一个稳定、可验证、能长期运行的最小闭环。</p>
+
+                <p>所以 v1.0 的目标被限定得很清楚：</p>
+
+                <ul>
+                    <li>使用 Jetson Orin Nano 本地运行</li>
+                    <li>使用普通 USB 摄像头输入</li>
+                    <li>使用 YOLO 做人物检测</li>
+                    <li>只检测 person 类别</li>
+                    <li>用 tracking 估算画面中当前有多少人</li>
+                    <li>生成 JSON 状态文件</li>
+                    <li>提供本地 Dashboard</li>
+                    <li>默认只监听本机地址</li>
+                    <li>通过 SSH tunnel 查看 Dashboard</li>
+                    <li>不开放公网</li>
+                    <li>不做人脸识别</li>
+                    <li>不做身份识别</li>
+                    <li>不接云端服务</li>
+                </ul>
+
+                <p>这个边界非常重要。很多 AI 项目最大的问题不是技术不够，而是一开始就想做太多。我的第一阶段目标不是"打造完整智能家居视觉系统"，而是先完成一个可靠的本地 occupancy prototype。</p>
+
+                <hr>
+
+                <h2>2. 硬件与运行环境</h2>
+
+                <p>这次使用的是 Jetson Orin Nano，它的优势是本地 AI 推理能力比较强，同时功耗和体积都比较适合放进 home lab 场景。</p>
+
+                <p>摄像头方面，这次用的是一个普通 USB UVC 摄像头。测试下来，它可以稳定在：</p>
+
+<pre><code>640×480 @ 30fps
+1280×720 @ 10fps</code></pre>
+
+                <p>实际 realtime detection 选择的是 640×480，因为 30fps 的输入更适合实时检测。720p 虽然分辨率更高，但只有 10fps，对于这个阶段的实时 occupancy tracking 反而不一定更合适。</p>
+
+                <p>软件环境大致包括：</p>
+
+<pre><code>Python 3.10
+OpenCV
+PyTorch + CUDA
+torchvision
+Ultralytics YOLO
+Flask</code></pre>
+
+                <p>中间遇到过一次比较典型的 Python 依赖问题：Ultralytics 安装后，NumPy 2.x 和部分已编译模块之间出现兼容性问题。最后把 NumPy 降到 1.26.x 后解决。这个问题也提醒我，Jetson 上做 AI 项目时，<strong>依赖版本稳定性比"越新越好"更重要</strong>。</p>
+
+                <hr>
+
+                <h2>3. Phase 0：先确认摄像头真的能用</h2>
+
+                <p>第一步不是上 YOLO，而是确认摄像头输入链路是否正常。</p>
+
+                <p>这一步做了几件事：</p>
+
+                <ul>
+                    <li>检查 USB 摄像头是否被系统识别</li>
+                    <li>确认 <code>/dev/video0</code> 可以被 OpenCV 打开</li>
+                    <li>拍摄一张测试图片</li>
+                    <li>探测不同分辨率和帧率</li>
+                    <li>确认哪个 video device 是实际视频流，哪个只是控制接口</li>
+                </ul>
+
+                <p>最后确认 <code>/dev/video0</code> 是可用的视频输入，640×480 可以稳定到 30fps，1280×720 可以到 10fps。这个结果决定了后续实时检测使用 640×480。</p>
+
+                <p>这一步看起来基础，但非常必要。因为如果摄像头层面不稳定，后面 YOLO、tracking、dashboard 再怎么做都没有意义。</p>
+
+                <hr>
+
+                <h2>4. Phase 1：静态图片 YOLO 检测</h2>
+
+                <p>摄像头确认后，下一步是先做静态图片检测。</p>
+
+                <p>这一步的目标是确认：</p>
+
+<pre><code>摄像头截图 → YOLO 模型 → 输出检测框</code></pre>
+
+                <p>最开始使用 YOLOv8n，因为它足够轻量，适合在 Jetson 上快速验证。第一次静态检测成功后，模型可以识别出画面里的多种物体，包括 person、clock、couch 等类别。</p>
+
+                <p>这一步说明三件事：</p>
+
+                <p>第一，YOLO 模型能正常加载。<br>第二，PyTorch + CUDA 在 Jetson 上工作正常。<br>第三，摄像头截图可以进入检测 pipeline。</p>
+
+                <p>到这里，视觉 AI 的最基础链路已经打通。</p>
+
+                <hr>
+
+                <h2>5. Phase 2：实时 YOLO 检测</h2>
+
+                <p>静态图片检测通过后，进入 realtime detection。</p>
+
+                <p>这里的逻辑是：</p>
+
+<pre><code>持续从摄像头读取 frame
+每隔若干帧送入 YOLO
+保存 latest-frame 和 latest-detected 图片</code></pre>
+
+                <p>为了避免 Jetson 压力过大，我没有每一帧都做检测，而是做了间隔检测。例如摄像头输入大约 30fps，但 YOLO 实际每 5 帧检测一次，因此有效检测频率大约是 6 FPS。</p>
+
+                <p>测试结果大致是：</p>
+
+<pre><code>YOLOv8n inference: ~45ms/frame
+effective detection: ~6 FPS</code></pre>
+
+                <p>这个性能对于第一版 occupancy detection 已经够用。因为我的目标不是做高速运动识别，而是判断画面里有没有人、当前大概有几个人。</p>
+
+                <hr>
+
+                <h2>6. Phase 3：person-only detection</h2>
+
+                <p>YOLO 默认会识别很多类别，但 occupancy detection 只关心 person。</p>
+
+                <p>所以第三阶段把检测范围收窄，只保留 person 类别。这样做有几个好处：</p>
+
+                <ul>
+                    <li>减少无关输出</li>
+                    <li>日志更清晰</li>
+                    <li>Dashboard 更聚焦</li>
+                    <li>后续 tracking 更简单</li>
+                    <li>避免把其他物体误当作占用状态</li>
+                </ul>
+
+                <p>这一阶段会输出：</p>
+
+<pre><code>latest-person-frame.jpg
+latest-person-detected.jpg
+person-events.log</code></pre>
+
+                <p>其中 detected 图片会绘制 person 检测框，log 会记录人物检测事件。测试中可以看到，即使画面质量一般，YOLOv8n 仍然可以稳定检测出人。</p>
+
+                <p>需要说明的是，confidence 不是越高越好，太低会误检，太高会漏检。这个项目后续并没有追求"每一帧都高置信度"，而是通过 tracking 和持续状态来获得更稳定的 occupancy 结果。</p>
+
+                <hr>
+
+                <h2>7. Phase 4：简单 person tracking</h2>
+
+                <p>单帧检测只能告诉我们"这一帧有没有人"，但 occupancy 更关心连续状态：</p>
+
+<pre><code>有人进入了吗？
+有人离开了吗？
+当前画面里有几个人？
+同一个人是否还在画面中？</code></pre>
+
+                <p>所以第四阶段加入了简单 tracking。</p>
+
+                <p>这一版没有使用复杂的 re-identification，也没有做人脸识别，而是采用基于 bounding box overlap 的简单 tracking 逻辑。每个检测到的人会被分配一个临时 track ID。</p>
+
+                <blockquote>这里要特别强调：<strong>track ID 不是身份 ID</strong>。<br>它只是当前运行中的临时追踪编号，不代表具体的人，也不能跨场景、跨时间识别同一个人。</blockquote>
+
+                <p>初始 tracking 版本可以跑通，但也暴露了一个问题：短生命周期 track 太多。也就是说，当检测框有抖动、遮挡或重叠时，系统容易认为旧 track 消失，新 track 出现，于是产生很多短暂 ID。</p>
+
+                <hr>
+
+                <h2>8. Phase 4.5 / 4.6：分析 tracking 并调参</h2>
+
+                <p>为了解决 track 抖动问题，我没有直接凭感觉改参数，而是先写了分析脚本，统计每个 track 的停留时间、短 track 比例、最长 dwell time 等指标。</p>
+
+                <p>初始结果显示，短生命周期 track 比例偏高。后来调整了几个关键参数：</p>
+
+<pre><code>IOU threshold 降低
+MAX_MISSED 增加
+confidence threshold 调整</code></pre>
+
+                <p>直觉上，很多人可能会觉得 tracker 不稳定就应该提高 IOU threshold，但实际这里相反。因为检测框本身会抖动，如果 IOU threshold 太高，同一个人的 box 稍微变化就会被认为不是同一个 track。</p>
+
+                <p>调参后，tracking 稳定性明显改善：</p>
+
+<pre><code>unique track IDs 明显减少
+short-lived tracks 比例下降
+long-lived tracks 增加
+longest dwell time 提升</code></pre>
+
+                <p>这一步是整个项目里很关键的一步。因为 occupancy detection 真正难的不是"某一帧检测到人"，而是"连续运行时状态不要乱跳"。</p>
+
+                <hr>
+
+                <h2>9. Phase 5：Flask Dashboard</h2>
+
+                <p>有了 tracking 和 occupancy 状态后，下一步是把结果展示出来。</p>
+
+                <p>我做了一个简单的 Flask Dashboard，默认监听：</p>
+
+<pre><code>127.0.0.1:5055</code></pre>
+
+                <p>它提供几个核心 endpoint：</p>
+
+<pre><code>/
+/status.json
+/image</code></pre>
+
+                <p>Dashboard 展示的内容包括：</p>
+
+                <ul>
+                    <li>当前 occupancy</li>
+                    <li>active track</li>
+                    <li>ENTER / EXIT 事件</li>
+                    <li>unique track count</li>
+                    <li>longest dwell</li>
+                    <li>最新检测图</li>
+                    <li>最近事件表</li>
+                    <li>自动刷新</li>
+                </ul>
+
+                <p>这里刻意没有绑定 <code>0.0.0.0</code>，也没有直接暴露到局域网或公网。查看方式是通过 SSH tunnel：</p>
+
+<pre><code>本地浏览器 → SSH tunnel → Jetson 127.0.0.1:5055</code></pre>
+
+                <p>这样既能在 Windows 浏览器里看 Dashboard，又避免把 Dashboard 直接开放到网络上。</p>
+
+                <hr>
+
+                <h2>10. Phase 5.5：Live Stack</h2>
+
+                <p>单独运行 tracker、updater、dashboard 很麻烦，所以接下来做了 live stack。</p>
+
+                <p>live stack 的目标是把三个组件一起启动：</p>
+
+<pre><code>tracker
+updater
+dashboard</code></pre>
+
+                <p>tracker 负责检测和追踪，updater 负责更新 <code>occupancy_status.json</code>，dashboard 负责展示页面和 endpoint。</p>
+
+                <p>最早版本已经可以跑，但还不够适合长期使用。比如旧进程残留、端口占用、手动停止、日志输出这些问题都需要更稳的处理。</p>
+
+                <hr>
+
+                <h2>11. Phase 6：Hardened Live Stack</h2>
+
+                <p>第六阶段是把 live stack 加固。</p>
+
+                <p>加固后的启动器支持：</p>
+
+<pre><code>--status
+--duration
+Ctrl-C graceful shutdown</code></pre>
+
+                <p>日常启动：</p>
+
+<pre><code>python3 run_live_occupancy_stack_hardened.py</code></pre>
+
+                <p>限时运行：</p>
+
+<pre><code>python3 run_live_occupancy_stack_hardened.py --duration 600</code></pre>
+
+                <p>状态检查：</p>
+
+<pre><code>python3 run_live_occupancy_stack_hardened.py --status</code></pre>
+
+                <p>停止：</p>
+
+                <p><code>Ctrl-C</code></p>
+
+                <p>hardened stack 做了几件重要的事：</p>
+
+                <ul>
+                    <li>启动前检查必要文件</li>
+                    <li>检查 5055 端口是否被占用</li>
+                    <li>不主动 kill 旧进程</li>
+                    <li>分别启动 tracker、updater、dashboard</li>
+                    <li>把日志写入 logs</li>
+                    <li>Ctrl-C 或 duration 到期后优雅退出</li>
+                    <li>清理子进程</li>
+                    <li>释放端口</li>
+                    <li>写 shutdown summary</li>
+                </ul>
+
+                <p>这一步完成后，系统从"能跑"变成了"可以日常手动使用"。</p>
+
+                <hr>
+
+                <h2>12. Phase 7：长时间稳定性测试</h2>
+
+                <p>最后一阶段是稳定性测试。</p>
+
+                <p>这里我做了两轮：</p>
+
+<pre><code>10 分钟测试
+30 分钟测试</code></pre>
+
+                <p>同时写了一个 stability checker，每隔一段时间采样：</p>
+
+                <ul>
+                    <li>内存</li>
+                    <li>swap</li>
+                    <li>相关进程是否存在</li>
+                    <li>5055 端口是否监听</li>
+                    <li><code>/</code> 是否 200</li>
+                    <li><code>/status.json</code> 是否 200</li>
+                    <li><code>/image</code> 是否 200</li>
+                    <li><code>occupancy_status.json</code> 是否持续更新</li>
+                    <li>latest image 是否持续更新</li>
+                    <li>logs 是否正常增长</li>
+                </ul>
+
+                <p>中间还遇到一个很有意思的报告误判问题。最初的 stability report 把测试结束后的状态也算进健康判断里。因为 stack 使用 <code>--duration</code>，30 分钟结束后进程正常退出、端口释放、endpoint 返回 000，这些都是预期行为。但旧报告把这些也算成 degraded。</p>
+
+                <p>后来修正了报告逻辑，把 samples 分成：</p>
+
+<pre><code>active window
+post-exit window</code></pre>
+
+                <p>只在 active window 内判断 endpoint、进程和端口健康。这样结果才准确。</p>
+
+                <p>最终 30 分钟测试通过：</p>
+
+<pre><code>active-window endpoints 100% 200
+tracker / updater / dashboard 全程存活
+occupancy_status.json 持续更新
+latest image 持续更新
+结束后 expected shutdown
+5055 正常释放
+Stability Verdict: PASS</code></pre>
+
+                <p>内存方面最低 available memory 曾经降到大约 0.56GB，swap 也有使用，但没有出现进程异常、endpoint 失败、状态停止刷新或系统崩溃。因此这个被记录为观察点，而不是 blocker。</p>
+
+                <hr>
+
+                <h2>13. 最终目录清理与归档</h2>
+
+                <p>v1.0 完成后，我没有直接删除测试文件，而是做了 archive。</p>
+
+                <p>主目录只保留：</p>
+
+                <ul>
+                    <li>核心运行脚本</li>
+                    <li>当前状态文件</li>
+                    <li>最新 dashboard image</li>
+                    <li>stability report</li>
+                    <li>shutdown summary</li>
+                    <li>final summary 文档</li>
+                    <li>blog short summary</li>
+                    <li>cleanup report</li>
+                </ul>
+
+                <p>中间测试文件、旧图片、旧日志、早期报告、probe 文件都移动到 archive 目录下，按 phase 分类保存。</p>
+
+                <p>这样做的好处是：</p>
+
+<pre><code>主目录更干净
+日常运行更清楚
+历史过程还能追溯
+以后写 blog 或排错还能找回证据</code></pre>
+
+                <p>最终目录从几十个文件缩减到核心文件集合，v1.0 状态变成：</p>
+
+<pre><code>COMPLETE + CLEAN</code></pre>
+
+                <hr>
+
+                <h2>14. 当前如何使用</h2>
+
+                <p>现在日常启动 live stack：</p>
+
+<pre><code>cd &lt;project-directory&gt;
+python3 run_live_occupancy_stack_hardened.py</code></pre>
+
+                <p>检查状态：</p>
+
+<pre><code>python3 run_live_occupancy_stack_hardened.py --status</code></pre>
+
+                <p>短时间验证：</p>
+
+<pre><code>python3 run_live_occupancy_stack_hardened.py --duration 60</code></pre>
+
+                <p>Dashboard 默认只在 Jetson 本机监听：</p>
+
+<pre><code>127.0.0.1:5055</code></pre>
+
+                <p>通过 SSH tunnel 查看：</p>
+
+<pre><code>ssh -L 5055:127.0.0.1:5055 &lt;user&gt;@&lt;jetson-host&gt;</code></pre>
+
+                <p>然后在本地浏览器打开：</p>
+
+<pre><code>http://127.0.0.1:5055</code></pre>
+
+                <p>这里我没有写具体 IP、用户名和内网信息，因为这些不适合放到公开文章里。</p>
+
+                <hr>
+
+                <h2>15. 已知限制</h2>
+
+                <p>这个 v1.0 是一个本地 occupancy prototype，不是完整产品。它有明确限制：</p>
+
+                <p><strong>第一，它不是人脸识别。</strong><br>系统只检测 person 类别，不知道画面里的人是谁。</p>
+
+                <p><strong>第二，track ID 不是身份 ID。</strong><br>track ID 只是当前运行中的临时编号，遮挡、重叠、离开画面再回来都可能导致 ID 变化。</p>
+
+                <p><strong>第三，复杂场景下 tracker 可能漂移。</strong><br>多人重叠、光线差、摄像头模糊、遮挡严重时，tracking 会受影响。</p>
+
+                <p><strong>第四，当前摄像头不是高质量视觉输入。</strong><br>640×480@30fps 对 occupancy 足够，但不适合做细粒度识别或 OCR。</p>
+
+                <p><strong>第五，还没有做 systemd 自启动。</strong><br>目前是手动启动，适合作为 prototype 使用。</p>
+
+                <p><strong>第六，还没有接入 Home Assistant 或 Pi5 Dashboard。</strong><br>现在它只是 Jetson 本地视觉模块，后续可以再接入 home lab。</p>
+
+                <p><strong>第七，日志轮转还没做。</strong><br>长时间运行前，最好加入 log rotation，避免 log 一直增长。</p>
+
+                <hr>
+
+                <h2>16. 为什么我认为 v1.0 可以收尾</h2>
+
+                <p>这个项目到这里，我认为已经达到 v1.0 的定义。</p>
+
+                <p>它不是因为"功能很多"而完成，而是因为它完成了一个可靠闭环：</p>
+
+<pre><code>输入有了
+模型能跑
+状态能更新
+Dashboard 能看
+进程能管理
+稳定性测过
+文档已归档
+目录已清理</code></pre>
+
+                <p>而且它不是只跑了一次 demo，而是经过了：</p>
+
+<pre><code>摄像头 baseline
+静态 YOLO
+实时 YOLO
+person-only detection
+tracking
+tracking tuning
+dashboard
+hardened live stack
+10 分钟稳定性测试
+30 分钟稳定性测试
+final documentation
+archive cleanup</code></pre>
+
+                <p>这才是我觉得最有价值的地方。很多 home lab 项目最容易卡在"能跑一次"，但没有进入"能复现、能停止、能检查、能交接、能继续开发"的状态。这个 v1.0 至少已经跨过了那条线。</p>
+
+                <hr>
+
+                <h2>17. 下一步可能做什么</h2>
+
+                <p>这个阶段收尾后，后面可以开新的分支，而不是继续往 v1.0 里塞东西。</p>
+
+                <p>我比较想做的后续方向包括：</p>
+
+<pre><code>v1.1：日志轮转 + 1 小时稳定性测试
+v1.2：接入 Pi5 / Home Lab Dashboard
+v1.3：接入 Home Assistant 做灯光联动
+v2.0：TensorRT 优化 / 更强 tracker / 更好摄像头
+OCR branch：单独做文档识别，不和 occupancy 混在一起</code></pre>
+
+                <p>尤其是 Home Assistant 联动会比较有意思。比如画面中有人且环境光较低时自动开灯，无人一段时间后自动关闭。但这应该是下一阶段，而不是 v1.0 的一部分。</p>
+
+                <hr>
+
+                <h2>18. 总结</h2>
+
+                <p>这次 Jetson Vision v1.0 最终完成的是一个本地、手动可控、可稳定运行的视觉占用检测原型。</p>
+
+                <p>它的最终状态可以概括为：</p>
+
+<pre><code>Jetson Vision Live Occupancy Stack v1.0
+Status: COMPLETE + CLEAN</code></pre>
+
+                <p>它不会识别具体的人，不依赖云端，不暴露公网，只在本地完成摄像头输入、人物检测、追踪、状态生成和 Dashboard 展示。</p>
+
+                <p>从 home lab 的角度看，这已经是一个可以继续扩展的基础模块。后续无论是接入 Pi5 控制中心、Home Assistant，还是继续优化推理性能，都可以建立在这个 v1.0 baseline 上继续推进。</p>
+            </div>
+        </article>
+    </div>
+</body>
+</html>
